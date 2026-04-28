@@ -1,0 +1,1500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WardrobeForge — Every Thread, A Twin</title>
+<link rel="icon" href="assets/logo.png?v=2" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ============= WardrobeForge — pixel game UI ============= */
+
+@font-face {
+  font-family: 'PressStart';
+  src: url('https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2') format('woff2');
+  font-display: swap;
+}
+
+:root{
+  --coral:#F85646;
+  --coral-deep:#D43A2C;
+  --coral-soft:#FF7E70;
+  --pink:#DCC7C7;
+  --pink-soft:#F2E3E3;
+  --pink-neon:#FFB8C8;
+  --mint:#B8F2D8;
+  --sky:#A8DEFF;
+  --lemon:#FFE9A8;
+  --lavender:#D4B8FF;
+  --white:#FFFFFF;
+  --ink:#2A1B1B;
+  --ink-2:#333333;
+  --paper:#FFF7F2;
+  --paper-2:#F8E9E5;
+  --shadow:#2A1B1B;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  font-family: 'VT323', 'Courier New', monospace;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1.25;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+img{image-rendering: pixelated; image-rendering:-moz-crisp-edges;}
+
+a{color:inherit; text-decoration:none}
+
+/* ----- pixel utility classes ----- */
+.pixel{font-family:'PressStart', 'VT323', monospace; letter-spacing:.02em}
+.mono{font-family:'VT323', monospace}
+
+/* checkered dithered background */
+.dither-bg{
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(45deg, var(--paper-2) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--paper-2) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--paper-2) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--paper-2) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+.cloud-bg{
+  background:
+    radial-gradient(ellipse at 10% 20%, var(--pink-neon) 0%, transparent 30%),
+    radial-gradient(ellipse at 90% 30%, var(--sky) 0%, transparent 32%),
+    radial-gradient(ellipse at 30% 80%, var(--lemon) 0%, transparent 28%),
+    radial-gradient(ellipse at 80% 90%, var(--lavender) 0%, transparent 30%),
+    var(--paper);
+}
+
+/* chunky pixel border via box-shadow stair-step */
+.pxl-box{
+  background: var(--white);
+  position:relative;
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    0 8px 0 0 var(--coral);
+}
+.pxl-box.no-drop{ box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+.pxl-box.deep{
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    8px 8px 0 0 var(--ink),
+    8px 8px 0 4px var(--coral);
+}
+.pxl-box.coral{ background: var(--coral); color: var(--white) }
+.pxl-box.pink{ background: var(--pink); }
+.pxl-box.dark{ background: var(--ink); color: var(--white) }
+
+/* pixel button */
+.pxl-btn{
+  font-family:'PressStart', monospace;
+  font-size: 12px;
+  letter-spacing:.04em;
+  background: var(--coral);
+  color: var(--white);
+  border:none;
+  padding: 14px 18px;
+  cursor:pointer;
+  position:relative;
+  text-transform:uppercase;
+  box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    0 8px 0 0 var(--coral-deep);
+  transition: transform .08s steps(2);
+}
+.pxl-btn:hover{ filter: brightness(1.05) }
+.pxl-btn:active{ transform: translateY(4px); box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+.pxl-btn.ghost{ background: var(--white); color: var(--ink); box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink),
+    0 8px 0 0 var(--pink);
+}
+.pxl-btn.ghost:active{ transform: translateY(4px); box-shadow:
+    0 -4px 0 0 var(--ink),
+    0 4px 0 0 var(--ink),
+    -4px 0 0 0 var(--ink),
+    4px 0 0 0 var(--ink);
+}
+
+/* sparkle pulse */
+@keyframes sparkle{
+  0%,100%{opacity:1; transform:scale(1)}
+  50%{opacity:.4; transform:scale(.7)}
+}
+.sparkle{ animation: sparkle 1.6s steps(4) infinite }
+
+/* float */
+@keyframes floaty{
+  0%,100%{transform: translateY(0)}
+  50%{transform: translateY(-6px)}
+}
+.float{ animation: floaty 2.4s steps(8) infinite }
+
+/* twinkle */
+@keyframes twinkle{
+  0%,100%{opacity:.2}
+  50%{opacity:1}
+}
+.twinkle{ animation: twinkle 1.4s steps(3) infinite }
+
+/* press-start glitch */
+@keyframes blink{ 50%{opacity:0} }
+.blink{ animation: blink 1s steps(2) infinite }
+
+/* scanline overlay (subtle) */
+.scanlines::after{
+  content:'';
+  position:absolute; inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,.05) 0 2px,
+    transparent 2px 4px
+  );
+  pointer-events:none;
+  mix-blend-mode: multiply;
+}
+
+/* nav */
+.nav{
+  position: sticky; top:0; z-index:50;
+  background: var(--white);
+  border-bottom: 4px solid var(--ink);
+  padding: 14px 24px;
+  display:flex; align-items:center; gap: 18px;
+  flex-wrap: wrap;
+}
+.nav .logo{
+  display:flex; align-items:center; gap:10px;
+  cursor:pointer;
+}
+.nav .logo img{ width: 38px; height:38px }
+.nav .logo span{ font-family:'PressStart', monospace; font-size:14px }
+.nav .links{ display:flex; gap: 6px; flex-wrap:wrap; margin-left:auto }
+.nav .link{
+  font-family:'PressStart', monospace;
+  font-size:10px;
+  padding: 10px 12px;
+  cursor:pointer;
+  letter-spacing:.04em;
+  color: var(--ink);
+  border: 3px solid transparent;
+  text-transform: uppercase;
+}
+.nav .link:hover{ background: var(--paper-2) }
+.nav .link.active{
+  background: var(--ink);
+  color: var(--white);
+  border-color: var(--ink);
+  box-shadow: 0 4px 0 0 var(--coral);
+}
+
+/* page wrap */
+.page{
+  max-width: 1240px; margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+/* footer */
+.foot{
+  border-top: 4px solid var(--ink);
+  background: var(--ink); color: var(--white);
+  padding: 28px 24px;
+  text-align:center;
+  font-family:'PressStart', monospace;
+  font-size: 10px;
+  letter-spacing:.06em;
+}
+.foot a{ color: var(--coral-soft); margin: 0 8px }
+
+/* heading styles */
+h1.pixel{ font-size: 28px; line-height:1.2; }
+h2.pixel{ font-size: 18px; line-height:1.3; }
+h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
+
+.heart{color:var(--coral)}
+
+/* hr - dotted pixel */
+.pxl-hr{
+  height: 4px;
+  background-image: linear-gradient(to right, var(--ink) 50%, transparent 50%);
+  background-size: 12px 4px;
+  background-repeat: repeat-x;
+  border: none;
+  margin: 16px 0;
+}
+
+/* tag chip */
+.chip{
+  font-family:'PressStart', monospace;
+  font-size: 9px;
+  padding: 6px 8px;
+  background: var(--ink);
+  color: var(--white);
+  display:inline-block;
+  letter-spacing:.04em;
+}
+.chip.coral{ background: var(--coral) }
+.chip.pink{ background: var(--pink); color: var(--ink) }
+.chip.mint{ background: var(--mint); color: var(--ink) }
+.chip.sky{ background: var(--sky); color: var(--ink) }
+.chip.lemon{ background: var(--lemon); color: var(--ink) }
+.chip.lavender{ background: var(--lavender); color: var(--ink) }
+
+/* health/xp bar */
+.bar{
+  height: 14px;
+  background: var(--ink);
+  position: relative;
+  border: 2px solid var(--ink);
+}
+.bar > i{
+  display:block; height: 100%;
+  background: linear-gradient(to right, var(--coral) 0%, var(--coral-soft) 100%);
+}
+.bar.green > i{ background: linear-gradient(to right, #6BCB77, var(--mint)) }
+.bar.blue > i{ background: linear-gradient(to right, #4D9DE0, var(--sky)) }
+.bar.purple > i{ background: linear-gradient(to right, #8E5CF7, var(--lavender)) }
+
+/* select / radio pixel chips */
+.opts{ display:flex; flex-wrap:wrap; gap:6px }
+.opt{
+  font-family:'PressStart', monospace;
+  font-size: 9px;
+  padding: 8px 10px;
+  border: 3px solid var(--ink);
+  background: var(--white);
+  cursor:pointer;
+  text-transform:uppercase;
+}
+.opt:hover{ background: var(--paper-2) }
+.opt.active{ background: var(--ink); color: var(--white) }
+.opt.coral.active{ background: var(--coral) }
+
+/* card grid */
+.grid{
+  display:grid; gap: 28px;
+}
+.grid.cols-3{ grid-template-columns: repeat(3, minmax(0,1fr)) }
+.grid.cols-4{ grid-template-columns: repeat(4, minmax(0,1fr)) }
+.grid.cols-2{ grid-template-columns: repeat(2, minmax(0,1fr)) }
+@media (max-width: 900px){
+  .grid.cols-3, .grid.cols-4{ grid-template-columns: repeat(2, minmax(0,1fr)) }
+}
+@media (max-width: 600px){
+  .grid.cols-2, .grid.cols-3, .grid.cols-4{ grid-template-columns: 1fr }
+}
+
+/* nft card */
+.nft-card{
+  background: var(--white);
+  padding: 16px;
+  cursor:pointer;
+  position: relative;
+  transition: transform .1s steps(2);
+}
+.nft-card:hover{ transform: translate(-2px,-2px) }
+.nft-thumb{
+  background: var(--paper-2);
+  aspect-ratio: 1/1;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
+.nft-thumb.dither-bg{ background-color: var(--paper-2) }
+
+/* legal page typography */
+.legal{
+  background: var(--white);
+  padding: 40px 44px;
+  max-width: 820px; margin: 0 auto;
+  font-size: 18px;
+  line-height: 1.6;
+}
+.legal h1{ font-family:'PressStart', monospace; font-size: 22px; margin-bottom: 8px }
+.legal h2{ font-family:'PressStart', monospace; font-size: 12px; margin: 28px 0 8px; color: var(--coral) }
+.legal h3{ font-family:'PressStart', monospace; font-size: 10px; margin: 18px 0 6px }
+.legal p{ margin-bottom: 12px }
+.legal ul{ padding-left: 22px; margin-bottom: 12px }
+.legal li{ margin-bottom: 4px }
+.legal .meta{ font-family:'PressStart', monospace; font-size: 9px; color:#888 }
+
+/* avatar stage */
+.stage{
+  background:
+    radial-gradient(ellipse at 50% 70%, rgba(255,184,200,.6) 0%, transparent 50%),
+    linear-gradient(to bottom, var(--sky) 0%, var(--pink-neon) 60%, var(--lemon) 100%);
+  position:relative;
+  overflow:hidden;
+  min-height: 540px;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.stage .star{
+  position:absolute; width:8px; height:8px;
+  background: var(--white);
+  clip-path: polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);
+}
+
+/* split view */
+.split{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: var(--white);
+}
+@media (max-width: 800px){
+  .split{ grid-template-columns: 1fr }
+}
+
+/* stat row */
+.stat-row{
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 10px 0;
+  border-bottom: 2px dotted var(--ink);
+}
+.stat-row:last-child{ border-bottom: none }
+.stat-key{
+  font-family:'PressStart', monospace;
+  font-size: 10px; letter-spacing:.04em;
+}
+.stat-val{ font-size: 20px }
+
+/* gridfloor */
+.gridfloor{
+  position:absolute; left:0; right:0; bottom:0; height: 60%;
+  background:
+    linear-gradient(to top, var(--coral) 0%, transparent 100%),
+    repeating-linear-gradient(0deg, transparent 0 24px, rgba(255,255,255,.4) 24px 26px),
+    repeating-linear-gradient(90deg, transparent 0 24px, rgba(255,255,255,.4) 24px 26px);
+  transform: perspective(400px) rotateX(60deg);
+  transform-origin: top;
+  opacity:.5;
+}
+
+/* badge ribbons */
+.ribbon{
+  position:absolute; top:-6px; right:-6px;
+  background: var(--coral);
+  color: var(--white);
+  padding: 6px 8px;
+  font-family:'PressStart', monospace; font-size:9px;
+  z-index: 2;
+  box-shadow: 0 0 0 3px var(--ink);
+}
+.ribbon.gold{ background: #F4C53C; color: var(--ink) }
+.ribbon.purple{ background: var(--lavender); color: var(--ink) }
+.ribbon.mint{ background: var(--mint); color: var(--ink) }
+
+/* clickable rows */
+.row-list{
+  display:flex; flex-direction:column; gap:12px;
+}
+.row-list .row{
+  display:grid; grid-template-columns: 60px 1fr auto; gap:14px; align-items:center;
+  background: var(--white); padding: 12px;
+  cursor:pointer;
+}
+.row-list .row:hover{ background: var(--paper-2) }
+.row-list .row.active{ background: var(--ink); color: var(--white) }
+.row-list .row.active .stat-key{ color: var(--coral-soft) }
+
+/* tooltip */
+.kbd{
+  font-family:'PressStart', monospace; font-size:9px;
+  border:2px solid var(--ink);
+  padding: 3px 6px;
+  background: var(--white);
+  display:inline-block;
+}
+
+/* override PressStart class to use Google's font reliably */
+.pixel, .pxl-btn, .chip, .opt, .nav .link, .nav .logo span,
+.legal h1, .legal h2, .legal h3, .stat-key, .ribbon, .kbd, .foot {
+  font-family: 'Press Start 2P', 'VT323', monospace !important;
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- nfts.js -->
+<script>
+/* ============= NFT catalog ============= */
+
+const NFT_LIBRARY = [
+  { id:'NFT-0001', name:'Stardust Crown', art:'starCrown', slot:'head', fabric:'Silk', fit:'Structured', finish:'Metallic threading', color:'Gradients', mint:'Legendary', rarity:'Legendary', serial:'#0014 / 100', lore:'Forged from a meteor that grazed our atmosphere in 2019. The original wearer is unknown.', pointsBonus:250, owned:true },
+  { id:'NFT-0002', name:'Cloudbunny Hood', art:'bunnyEars', slot:'head', fabric:'Cotton', fit:'Oversized', finish:'Washed', color:'Solid (Pink)', mint:'Mint', rarity:'Rare', serial:'#0421 / 5,000', lore:'Cosy, fluffy, slightly haunted by static. Squeezable in both realms.', pointsBonus:100, owned:true },
+  { id:'NFT-0003', name:'Voltbloom Helm', art:'thunderHelm', slot:'head', fabric:'Techwear', fit:'Slim', finish:'Reflective', color:'Color-shifting', mint:'Worn', rarity:'Epic', serial:'#0089 / 500', lore:'Outfit pulled from a cancelled lookbook. Hum of voltage when worn for too long.', pointsBonus:175, owned:true },
+  { id:'NFT-0004', name:'Ember Tiara', art:'flameTiara', slot:'head', fabric:'Leather', fit:'Cropped', finish:'Distressed', color:'Solid (Black)', mint:'Vintage', rarity:'Epic', serial:'#0007 / 250', lore:'A Y2K tour relic — flame motif borrowed by half the city.', pointsBonus:150, owned:false },
+  { id:'NFT-0005', name:'Nimbus Hoodie', art:'cloudHoodie', slot:'outfit', fabric:'Cotton', fit:'Oversized', finish:'Matte', color:'Solid (Sky)', mint:'Mint', rarity:'Common', serial:'#1240 / 10,000', lore:'The starter hoodie. Beloved, pilled in all the right places.', pointsBonus:100, owned:true },
+  { id:'NFT-0006', name:'Glitchcrop Top', art:'cropPink', slot:'outfit', fabric:'Techwear', fit:'Cropped', finish:'Glossy', color:'Pattern (Glitch)', mint:'Mint', rarity:'Rare', serial:'#0301 / 2,500', lore:'Pixel-shifted threads cause a faint shimmer; wash separately.', pointsBonus:100, owned:true },
+  { id:'NFT-0007', name:'Ember Carapace', art:'emberJacket', slot:'outfit', fabric:'Leather', fit:'Structured', finish:'Distressed', color:'Solid (Coral)', mint:'Vintage', rarity:'Legendary', serial:'#0003 / 50', lore:'Each scale is hand-stamped by a former blacksmith named Pat.', pointsBonus:250, owned:false },
+  { id:'NFT-0008', name:'Void Cloak', art:'voidCloak', slot:'outfit', fabric:'Silk', fit:'Oversized', finish:'Reflective', color:'Color-shifting', mint:'Legendary', rarity:'Legendary', serial:'#0001 / 25', lore:'Embroidered with the names of stars that have already gone out.', pointsBonus:250, owned:false },
+  { id:'NFT-0009', name:'Frostspire Staff', art:'iceStaff', slot:'item', fabric:'Techwear', fit:'Slim', finish:'Reflective', color:'Solid (Ice)', mint:'Mint', rarity:'Rare', serial:'#0822 / 3,000', lore:'Accessory only. Does not actually freeze water. Looks rad.', pointsBonus:100, owned:true },
+  { id:'NFT-0010', name:'Stargaze Scepter', art:'starWand', slot:'item', fabric:'Silk', fit:'Structured', finish:'Metallic threading', color:'Gradients', mint:'Worn', rarity:'Epic', serial:'#0066 / 750', lore:'Heavier than it looks. Pairs well with anything pastel.', pointsBonus:175, owned:true },
+  { id:'NFT-0011', name:'Ember Blade', art:'emberBlade', slot:'item', fabric:'Denim', fit:'Slim', finish:'Distressed', color:'Pattern (Camo)', mint:'Vintage', rarity:'Epic', serial:'#0044 / 600', lore:'Originally a belt buckle. The blade is pinned to a denim sheath.', pointsBonus:175, owned:false },
+  { id:'NFT-0012', name:'Void Orb', art:'voidOrb', slot:'item', fabric:'Silk', fit:'Cropped', finish:'Glossy', color:'Color-shifting', mint:'Legendary', rarity:'Legendary', serial:'#0002 / 30', lore:'Genuine fabric, painted to look like glass. Weighs nothing.', pointsBonus:250, owned:false },
+];
+
+const RARITY_COLOR = { Common:'pink', Rare:'sky', Epic:'lavender', Legendary:'coral' };
+
+window.NFT_LIBRARY = NFT_LIBRARY;
+window.RARITY_COLOR = RARITY_COLOR;
+</script>
+
+<!-- tweaks-panel.jsx -->
+<script type="text/babel">
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+  .twk-field{appearance:none;width:100%;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+`;
+
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null ? keyOrEdits : { [keyOrEdits]: val };
+    setValues(prev => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
+
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+  }, [open, clampToViewport]);
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+  const dismiss = () => { setOpen(false); window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); };
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd"><b>{title}</b><button className="twk-x" onClick={dismiss}>✕</button></div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+function TweakSection({ label, children }) {
+  return <><div className="twk-sect">{label}</div>{children}</>;
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl"><span>{label}</span>{value != null && <span className="twk-val">{value}</span>}</div>
+      {children}
+    </div>
+  );
+}
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'} role="switch" aria-checked={!!value} onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakColor({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <input type="color" className="twk-swatch" value={value} onChange={e => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+Object.assign(window, { useTweaks, TweaksPanel, TweakSection, TweakRow, TweakSlider, TweakToggle, TweakColor });
+</script>
+
+<!-- pixelart.jsx -->
+<script type="text/babel">
+const PixelArt = ({ data, palette, scale = 4, style = {} }) => {
+  const rows = data.length, cols = data[0].length;
+  const shadows = [];
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const ch = data[y][x];
+      if (ch === '.' || ch === ' ') continue;
+      const c = palette[ch];
+      if (!c) continue;
+      shadows.push(`${x * scale}px ${y * scale}px 0 ${c}`);
+    }
+  }
+  return (
+    <div aria-hidden="true" style={{ position:'relative', width:cols*scale, height:rows*scale, ...style }}>
+      <div style={{ width:scale, height:scale, boxShadow:shadows.join(','), background:'transparent' }} />
+    </div>
+  );
+};
+
+const CHIBI_DATA = [
+  '....HHHHHHHHHHHHHHHH....',
+  '...HHhhhhhhhhhhhhhhHH...',
+  '..HHhhhhhhhhhhhhhhhhHH..',
+  '.HHhhhSSSSSSSSSSSShhhHH.',
+  '.HhhSSSSSSSSSSSSSSSShhH.',
+  'HhhSSSSSSSSSSSSSSSSSShhH',
+  'HhSSSHhhSSSSSSSSHhhSShhH',
+  'HHSSHHhhhSSSSSShhhhHHSHH',
+  '.SSHLLLLSSSSSSSSLLLLHSS.',
+  '.SSLLLLLSSSSSSSSLLLLLSS.',
+  '.SSLIIWLSSSSSSSSLIIWLSS.',
+  '.SSLIIILSSSSSSSSLIIILSS.',
+  '.SSLIIILSSSSSSSSLIIILSS.',
+  '.SSLRRRRSSSSSSSSRRRRLSS.',
+  '.SSSSSSSSSSnSSSSSSSSSSS.',
+  '..SSSSSSSSSSSSSSSSSSSS..',
+  '..SSSSSSSSMmTmMSSSSSSS..',
+  '..SSSSSSSSSMMMSSSSSSSS..',
+  '...SSSSSSSSSSSSSSSSSS...',
+  '....SSSSSSSSSSSSSSSS....',
+  '........KKKKKKKK........',
+  '.......KCCCCCCCCK.......',
+  '......KCCCCCCCCCCK......',
+  '.....KCCCCCCCCCCCCK.....',
+  '.....KCCCCCCCCCCCCK.....',
+  '.....KCCCCCCCCCCCCK.....',
+  '......KSSSSSSSSSSK......',
+  '......KSSSSSSSSSSK......',
+  '......KPPPPPPPPPPK......',
+  '......KPPPPPPPPPPK......',
+  '.....K.PPPP..PPPP.K.....',
+  '.....K.PPPP..PPPP.K.....',
+  '.....K.XXXX..XXXX.K.....',
+  '.....KXXXXXKKXXXXXK.....',
+  '......KKKK....KKKK......',
+];
+
+const SKIN_TONES = {
+  porcelain: { mid:'#FFF0DF', shadow:'#F2DCC4' },
+  light:     { mid:'#FCDEBD', shadow:'#E9C49B' },
+  warm:      { mid:'#F9CD9C', shadow:'#E0AE76' },
+  tan:       { mid:'#D4AD81', shadow:'#A88254' },
+  deep:      { mid:'#6E4A22', shadow:'#4A2F12' },
+};
+
+const EYE_COLORS = {
+  black:'#000000', brown:'#833303', blue:'#333CE0', red:'#E42A2A',
+  green:'#3AE25B', cyan:'#67FFF0', sky:'#55D2FF', pink:'#FEA0CD',
+  lilac:'#F1CFFF', amber:'#FBC01F', aqua:'#67FFF0',
+};
+
+const buildChibiPalette = (skinKey, eyeKey, hairKey = 'brown') => {
+  const skin = SKIN_TONES[skinKey] || SKIN_TONES.light;
+  const eye = EYE_COLORS[eyeKey] || EYE_COLORS.brown;
+  const hairs = {
+    brown:  { H:'#3A1F0E', h:'#5A2E14' },
+    black:  { H:'#1A0F0A', h:'#2A1B14' },
+    blonde: { H:'#A87332', h:'#D9A35A' },
+    pink:   { H:'#9B3D6A', h:'#D6739E' },
+    silver: { H:'#7A7A8E', h:'#A8A8C0' },
+  };
+  const hair = hairs[hairKey] || hairs.brown;
+  return {
+    H:hair.H, h:hair.h, S:skin.mid, s:skin.shadow,
+    L:'#1A0F0A', I:eye, W:'#FFFFFF', R:'#3A1F0E',
+    n:skin.shadow, M:'#C73A4A', m:'#F58A8A', T:'#FFFFFF',
+    K:'#2A1B1B', C:'#FFB8C8', P:'#A8DEFF', X:'#3A1F0E',
+  };
+};
+
+const CLOTHING = {
+  starCrown:   { slot:'head',   name:'Stardust Crown',    palette:{S:'#FFE9A8',s:'#F4C53C',K:'#2A1B1B',G:'#FFFFFF'}, data:['....S.......S......S....','...SSS.....SSS....SSS...','..SSGSS...SSGSS..SSGSS..','...SSS.....SSS....SSS...','....s.......s......s....','........................','........................','........................'] },
+  bunnyEars:   { slot:'head',   name:'Cloudbunny Hood',   palette:{W:'#FFFFFF',w:'#DCC7C7',P:'#FFB8C8',K:'#2A1B1B'}, data:['..W..............W......','.WWW............WWW.....','.WPW............WPW.....','.WPW............WPW.....','.WWW............WWW.....','..W..WWWWWWWWWWW.W......','....WWWWWWWWWWWWWW......','....WWWWWWWWWWWWWW......'] },
+  thunderHelm: { slot:'head',   name:'Voltbloom Helm',    palette:{Y:'#F4C53C',y:'#FFE9A8',K:'#2A1B1B',G:'#A0A0B0'}, data:['......Y..............Y..', '.....YY..............YY.','....YYY..............YYY','...YyY................YY','...GGGGGGGGGGGGGGGGGGGG.','..GGGGGGGGGGGGGGGGGGGGG.','..GG..............GG.GG.','..GGGGGGGGGGGGGGGGGGGGG.'] },
+  flameTiara:  { slot:'head',   name:'Ember Tiara',       palette:{R:'#F85646',r:'#FF7E70',y:'#FFE9A8',K:'#2A1B1B'}, data:['........R...R...R.......', '.......RrR.RrR.RrR......','......RrryR.RyrrR.......', '.......RrR.RrR.RrR......','........R...R...R.......','........................','........................','........................'] },
+  cloudHoodie: { slot:'outfit', name:'Nimbus Hoodie',     palette:{B:'#A8DEFF',b:'#7FC7F0',K:'#2A1B1B',W:'#FFFFFF'}, data:['.....KBBBBBBBBBBBBBK....','....KBBBWWBBBBWWBBBBK...','....KBBBBBBBBBBBBBBBK...','....KBBBBKKKKKKBBBBBK...','....KBBBBBBBBBBBBBBBK...','....KbbbbbbbbbbbbbbbK...','....KbbbbbbbbbbbbbbbK...','....KbbbbbbbbbbbbbbbK...'] },
+  cropPink:    { slot:'outfit', name:'Glitchcrop Top',    palette:{P:'#FFB8C8',p:'#F299B0',K:'#2A1B1B',W:'#FFFFFF'}, data:['.....KPPPPPPPPPPPPPK....','....KPPWPPPPPPPPWPPK....','....KPpPPPPPPPPPpPPK....','....KPpppppppppppPPK....','.....KKKKKKKKKKKKKK.....','........................','........................','........................'] },
+  emberJacket: { slot:'outfit', name:'Ember Carapace',    palette:{R:'#F85646',r:'#D43A2C',K:'#2A1B1B',y:'#FFE9A8'}, data:['.....KRRRRRRRRRRRRRK....','....KRrrRRRRyRRRRrrRK...','....KRRrRRRyyyRRRrRRK...','....KRRRRRRyRRRRRRRK....','....KRrrrrrrrrrrrrRK....','....KRrrrrrrrrrrrrRK....','....KRrrrrrrrrrrrrRK....','....KRrrrrrrrrrrrrRK....'] },
+  voidCloak:   { slot:'outfit', name:'Void Cloak',        palette:{K:'#2A1B1B',k:'#4A3838',V:'#D4B8FF',s:'#FFFFFF'}, data:['....KKKKKKKKKKKKKKKKK...','....KkkkVkkkkkkVkkkK....','....KkkkkkkkskkkkkkK....','....KkkVkkkkkkkkVkkK....','....KkkkkkkksVkkkkkK....','....KkkkkVkkkkkkkkkK....','....KkkkkkkkkkkkVkkK....','....KkkkkkkkkkkkkkkK....'] },
+  iceStaff:    { slot:'item',   name:'Frostspire Staff',  palette:{B:'#A8DEFF',W:'#FFFFFF',K:'#2A1B1B',N:'#7FC7F0'}, data:['..B.....', '.BWB....','BWWWB...','.BNB....','..K.....','..K.....','..K.....','..K.....','..K.....','..K.....'] },
+  starWand:    { slot:'item',   name:'Stargaze Scepter',  palette:{Y:'#F4C53C',S:'#FFE9A8',W:'#FFFFFF',K:'#2A1B1B'}, data:['..Y.....', '.YSY....','YSWSY...','.YSY....','..K.....','..K.....','..K.....','..K.....','..K.....','..K.....'] },
+  emberBlade:  { slot:'item',   name:'Ember Blade',       palette:{R:'#F85646',r:'#D43A2C',y:'#FFE9A8',K:'#2A1B1B'}, data:['..y.....', '..R.....','..R.....','..R.....','..R.....','..R.....', '.RrR....','KrKrK...','..K.....','..K.....'] },
+  voidOrb:     { slot:'item',   name:'Void Orb',          palette:{V:'#D4B8FF',v:'#8E5CF7',W:'#FFFFFF',K:'#2A1B1B'}, data:['.VVV....', 'VWvWV...','VvWvV...','.VVV....','..K.....','..K.....','..K.....','..K.....','..K.....','..K.....'] },
+  starAura:    { slot:'boots',  name:'Stardust Boots',    palette:{Y:'#FFE9A8',S:'#F4C53C',K:'#2A1B1B',W:'#FFFFFF'}, data:['.....KSSSSK..KSSSSK.....','.....KSYYSK..KSYYSK.....','.....KSYYSK..KSYYSK.....','.....KSWWSK..KSWWSK.....','....KKSSSSKKKKSSSSKK....','....KSSSSSSKKSSSSSSK....','....KKKKKKKKKKKKKKKK....'] },
+  emberAura:   { slot:'boots',  name:'Ember Greaves',     palette:{R:'#F85646',r:'#D43A2C',y:'#FFE9A8',K:'#2A1B1B'}, data:['.....KRRRRK..KRRRRK.....','.....KRyyRK..KRyyRK.....','.....KRyrRK..KRyrRK.....','.....KRrrRK..KRrrRK.....','....KKRRRRKKKKRRRRKK....','....KRRRRRRKKRRRRRRK....','....KKKKKKKKKKKKKKKK....'] },
+};
+
+const ClothingArt = ({ id, scale = 6, style = {} }) => {
+  const item = CLOTHING[id];
+  if (!item) return null;
+  return <PixelArt data={item.data} palette={item.palette} scale={scale} style={style} />;
+};
+
+const ChibiAvatar = ({ skin = 'light', eye = 'brown', hair = 'brown', scale = 6, equipped = {}, style = {} }) => {
+  const palette = buildChibiPalette(skin, eye, hair);
+  return (
+    <div style={{ position:'relative', width:24*scale, height:37*scale, ...style }}>
+      <PixelArt data={CHIBI_DATA} palette={palette} scale={scale} />
+      {equipped.head   && <div style={{ position:'absolute', left:0, top:-2*scale, width:24*scale }}><ClothingArt id={equipped.head} scale={scale} /></div>}
+      {equipped.outfit && <div style={{ position:'absolute', left:0, top:22*scale, width:24*scale }}><ClothingArt id={equipped.outfit} scale={scale} /></div>}
+      {equipped.item   && <div style={{ position:'absolute', left:16*scale, top:22*scale }}><ClothingArt id={equipped.item} scale={scale} /></div>}
+      {equipped.boots  && <div style={{ position:'absolute', left:0, top:32*scale, width:24*scale }}><ClothingArt id={equipped.boots} scale={scale} /></div>}
+    </div>
+  );
+};
+
+const SparkleDot = ({ color = '#FFFFFF', size = 4, style = {} }) => (
+  <div className="sparkle" style={{ width:size*3, height:size*3, position:'absolute', boxShadow:`${size}px 0 0 ${color}, 0 ${size}px 0 ${color}, ${size*2}px ${size}px 0 ${color}, ${size}px ${size*2}px 0 ${color}`, ...style }} />
+);
+
+const PixelStar = ({ size = 6, color = '#FFE9A8', style = {} }) => (
+  <div style={{ width:size*5, height:size*5, position:'absolute', background:color, clipPath:'polygon(50% 0,61% 38%,100% 38%,68% 60%,80% 100%,50% 76%,20% 100%,32% 60%,0 38%,39% 38%)', ...style }} />
+);
+
+const PixelHeart = ({ size = 4, color = '#F85646', style = {} }) => {
+  const data = ['.RR.RR.','RRRRRRR','RRRRRRR','.RRRRR.','..RRR..','...R...'];
+  return <PixelArt data={data} palette={{ R:color }} scale={size} style={{ position:'absolute', ...style }} />;
+};
+
+Object.assign(window, { PixelArt, ChibiAvatar, ClothingArt, CLOTHING, SKIN_TONES, EYE_COLORS, SparkleDot, PixelStar, PixelHeart });
+</script>
+
+<!-- pixelizer.jsx -->
+<script type="text/babel">
+const PixelizerUtils = {
+  quantize(imageData, numColors) {
+    const pixels = [];
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      if (imageData.data[i+3] > 128) pixels.push([imageData.data[i], imageData.data[i+1], imageData.data[i+2]]);
+    }
+    if (pixels.length === 0) return [];
+    let palette = [];
+    const step = Math.max(1, Math.floor(pixels.length / numColors));
+    for (let i = 0; i < numColors && i*step < pixels.length; i++) palette.push(pixels[i*step]);
+    for (let iter = 0; iter < 5; iter++) {
+      const clusters = palette.map(() => ({ sum:[0,0,0], count:0 }));
+      for (const p of pixels) {
+        let best = 0, bestD = Infinity;
+        for (let j = 0; j < palette.length; j++) { const d = this.colorDist(p, palette[j]); if (d < bestD) { bestD = d; best = j; } }
+        clusters[best].sum[0] += p[0]; clusters[best].sum[1] += p[1]; clusters[best].sum[2] += p[2]; clusters[best].count++;
+      }
+      palette = clusters.map((c,i) => c.count > 0 ? [c.sum[0]/c.count, c.sum[1]/c.count, c.sum[2]/c.count] : palette[i]);
+    }
+    return palette.map(c => c.map(Math.round));
+  },
+  colorDist(a,b) { return (a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2; },
+  closestColor(r,g,b,palette) { let best=0,bestD=Infinity; for(let i=0;i<palette.length;i++){const d=this.colorDist([r,g,b],palette[i]);if(d<bestD){bestD=d;best=i;}} return palette[best]; },
+  rgbToHex(r,g,b) { return '#'+[r,g,b].map(x=>{const h=Math.round(x).toString(16);return h.length===1?'0'+h:h;}).join(''); },
+  async pixelateImage(imgElement, blockSize, numColors) {
+    const canvas = document.createElement('canvas');
+    const maxW = 600; let w = imgElement.width, h = imgElement.height;
+    if (w > maxW) { h = Math.round(h*maxW/w); w = maxW; }
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(imgElement, 0, 0, w, h);
+    const pixW = Math.ceil(w/blockSize), pixH = Math.ceil(h/blockSize);
+    const tmpCanvas = document.createElement('canvas'); tmpCanvas.width = pixW; tmpCanvas.height = pixH;
+    const tmpCtx = tmpCanvas.getContext('2d'); tmpCtx.drawImage(canvas, 0, 0, pixW, pixH);
+    const imgData = tmpCtx.getImageData(0, 0, pixW, pixH);
+    const palette = this.quantize(imgData, numColors);
+    const pixelGrid = [];
+    for (let y = 0; y < pixH; y++) {
+      const row = [];
+      for (let x = 0; x < pixW; x++) {
+        const idx = (y*pixW+x)*4; const alpha = imgData.data[idx+3];
+        if (alpha < 128) { row.push({ transparent:true }); }
+        else { const [r,g,b] = this.closestColor(imgData.data[idx], imgData.data[idx+1], imgData.data[idx+2], palette); row.push({ r,g,b, hex:this.rgbToHex(r,g,b) }); }
+      }
+      pixelGrid.push(row);
+    }
+    return { grid:pixelGrid, palette:palette.map(c=>this.rgbToHex(c[0],c[1],c[2])), width:pixW, height:pixH };
+  },
+};
+
+const PixelizedAvatar = ({ pixelData, colorMap = {}, scale = 4, style = {} }) => {
+  if (!pixelData) return null;
+  const { grid, width, height } = pixelData;
+  const shadows = [];
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[y].length; x++) {
+      const pixel = grid[y][x];
+      if (pixel.transparent) continue;
+      shadows.push(`${x*scale}px ${y*scale}px 0 ${colorMap[pixel.hex] || pixel.hex}`);
+    }
+  }
+  return (
+    <div style={{ position:'relative', width:width*scale, height:height*scale, ...style }}>
+      <div style={{ width:scale, height:scale, boxShadow:shadows.length>0?shadows.join(','):'none', background:'transparent' }} />
+    </div>
+  );
+};
+
+const ImagePixelizerTool = ({ onPixelDataReady }) => {
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const [pixelSize, setPixelSize] = React.useState(4);
+  const [colorCount, setColorCount] = React.useState(32);
+  const fileInputRef = React.useRef(null);
+  const handleFile = async (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setIsProcessing(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const img = new Image();
+      img.onload = async () => { const data = await PixelizerUtils.pixelateImage(img, pixelSize, colorCount); onPixelDataReady(data); setIsProcessing(false); };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  return (
+    <div>
+      <div className={`pxl-box ${isDragging?'scanlines':''}`}
+        onDragOver={e=>{e.preventDefault();setIsDragging(true);}} onDragLeave={()=>setIsDragging(false)}
+        onDrop={e=>{e.preventDefault();setIsDragging(false);handleFile(e.dataTransfer.files[0]);}}
+        onClick={()=>fileInputRef.current?.click()}
+        style={{ padding:'2rem', textAlign:'center', cursor:'pointer', background:isDragging?'var(--coral-soft)':'#fff', minHeight:120, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:8 }}>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={e=>handleFile(e.target.files[0])} style={{display:'none'}} />
+        {isProcessing ? <div className="mono" style={{fontSize:16}}>Processing...</div> : <>
+          <div className="pixel" style={{fontSize:12}}>{isDragging?'DROP IMAGE HERE':'UPLOAD AVATAR IMAGE'}</div>
+          <div className="mono" style={{fontSize:14,opacity:.6}}>Drop image or click to browse</div>
+        </>}
+      </div>
+      <div style={{ marginTop:16, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+        <div className="pxl-box" style={{padding:12}}>
+          <div className="pixel" style={{fontSize:9,marginBottom:8}}>PIXEL SIZE: <span style={{color:'var(--coral)'}}>{pixelSize}px</span></div>
+          <input type="range" min="2" max="16" value={pixelSize} onChange={e=>setPixelSize(parseInt(e.target.value))} style={{width:'100%'}} />
+        </div>
+        <div className="pxl-box" style={{padding:12}}>
+          <div className="pixel" style={{fontSize:9,marginBottom:8}}>COLORS: <span style={{color:'var(--coral)'}}>{colorCount}</span></div>
+          <input type="range" min="8" max="64" value={colorCount} onChange={e=>setColorCount(parseInt(e.target.value))} style={{width:'100%'}} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, { PixelizerUtils, PixelizedAvatar, ImagePixelizerTool });
+</script>
+
+<!-- page-main.jsx -->
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+const NFTCard = ({ nft, onClick, owned }) => {
+  const ribbonColor = nft.rarity === 'Legendary' ? '' : nft.rarity === 'Epic' ? 'purple' : nft.rarity === 'Rare' ? 'mint' : 'gold';
+  return (
+    <div className="nft-card pxl-box" onClick={onClick}>
+      <div className={`ribbon ${ribbonColor}`}>{nft.rarity}</div>
+      <div className="nft-thumb dither-bg" style={{ marginBottom:12 }}>
+        <div style={{ position:'relative' }}><ClothingArt id={nft.art} scale={5} /></div>
+        {owned === false && (
+          <div style={{ position:'absolute', inset:0, background:'rgba(42,27,27,.6)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'PressStart, monospace', fontSize:10, color:'#fff', letterSpacing:'.06em' }}>
+            LOCKED
+          </div>
+        )}
+      </div>
+      <div className="pixel" style={{ fontSize:12, marginBottom:6 }}>{nft.name}</div>
+      <div className="mono" style={{ fontSize:16, opacity:.7, marginBottom:8 }}>{nft.serial}</div>
+      <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+        <span className={`chip ${RARITY_COLOR[nft.rarity]}`}>{nft.fabric}</span>
+        <span className="chip pink">{nft.fit}</span>
+      </div>
+    </div>
+  );
+};
+
+const Stat = ({ n, k }) => (
+  <div>
+    <div className="pixel" style={{ fontSize:22, color:'var(--coral)' }}>{n}</div>
+    <div className="pixel" style={{ fontSize:9, opacity:.7, marginTop:4 }}>{k}</div>
+  </div>
+);
+
+const Step = ({ n, title, body }) => (
+  <div className="pxl-box" style={{ padding:18, background:'#fff' }}>
+    <div className="pixel" style={{ fontSize:28, color:'var(--coral)', marginBottom:10 }}>{n}</div>
+    <div className="pixel" style={{ fontSize:12, marginBottom:10 }}>{title}</div>
+    <div style={{ fontSize:18, lineHeight:1.4 }}>{body}</div>
+  </div>
+);
+
+const BulletPoint = ({ icon, t, b }) => (
+  <li style={{ display:'grid', gridTemplateColumns:'36px 1fr', gap:12, alignItems:'flex-start' }}>
+    <div className="pixel" style={{ fontSize:18, color:'var(--coral-soft)' }}>{icon}</div>
+    <div>
+      <div className="pixel" style={{ fontSize:11, marginBottom:4, color:'var(--pink-neon)' }}>{t}</div>
+      <div style={{ fontSize:18, opacity:.85 }}>{b}</div>
+    </div>
+  </li>
+);
+
+const MainPage = ({ goto }) => {
+  const featured = NFT_LIBRARY.filter(n => ['NFT-0001','NFT-0005','NFT-0008','NFT-0010'].includes(n.id));
+  return (
+    <div>
+      <section className="cloud-bg" style={{ position:'relative', overflow:'hidden', borderBottom:'4px solid var(--ink)' }}>
+        <div className="page" style={{ display:'grid', gridTemplateColumns:'1.1fr 1fr', gap:40, alignItems:'center', minHeight:540 }}>
+          <div>
+            <div style={{ display:'flex', gap:6, marginBottom:18 }}>
+              <span className="chip coral">v0.4 BETA</span>
+              <span className="chip">EVERY THREAD, A TWIN</span>
+            </div>
+            <h1 className="pixel" style={{ fontSize:36, lineHeight:1.15, marginBottom:18 }}>
+              WEAR IT IRL.<br /><span style={{ color:'var(--coral)' }}>WIELD IT</span> ONLINE.
+            </h1>
+            <p style={{ fontSize:22, marginBottom:26, maxWidth:520 }}>
+              WardrobeForge mints an <b>NFT twin</b> for every physical garment we ship.
+              Buy a hoodie, unlock a pixel-art relic, equip it on your avatar, and earn 100 points in our virtual try-on app.
+            </p>
+            <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
+              <button className="pxl-btn" onClick={() => goto('avatar')}>ENTER WARDROBE</button>
+              <button className="pxl-btn ghost" onClick={() => goto('nfts')}>BROWSE RELICS</button>
+            </div>
+            <div style={{ display:'flex', gap:28, marginTop:36, flexWrap:'wrap' }}>
+              <Stat n="12,400" k="THREADS MINTED" />
+              <Stat n="2,138" k="WARDROBES" />
+              <Stat n="100%" k="ANTI-COUNTERFEIT" />
+            </div>
+          </div>
+          <div style={{ position:'relative', minHeight:460, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+            <PixelStar size={5} color="#FFE9A8" style={{ left:20, top:20 }} />
+            <PixelStar size={4} color="#FFFFFF" style={{ left:'70%', top:60 }} />
+            <PixelStar size={3} color="#FFB8C8" style={{ left:'40%', top:30 }} />
+            <PixelStar size={4} color="#A8DEFF" style={{ right:30, top:100 }} />
+            <SparkleDot color="#FFFFFF" size={3} style={{ left:'85%', top:'40%' }} />
+            <SparkleDot color="#FFE9A8" size={3} style={{ left:'10%', top:'60%' }} />
+            <div className="float">
+              <ChibiAvatar skin="light" scale={6} equipped={{ head:'starCrown', outfit:'cropPink', item:'starWand' }} />
+            </div>
+            <div style={{ position:'absolute', bottom:30, left:'50%', transform:'translateX(-50%)', width:220, height:40, background:'#FFFFFF', borderRadius:'50%', boxShadow:'0 6px 0 0 rgba(42,27,27,.15)', opacity:.9 }} />
+          </div>
+        </div>
+      </section>
+
+      <section className="page">
+        <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:32, flexWrap:'wrap' }}>
+          <h2 className="pixel" style={{ fontSize:22 }}>HOW IT WORKS</h2>
+          <span className="mono" style={{ fontSize:18, opacity:.6 }}>// four steps, one wardrobe</span>
+        </div>
+        <div className="grid cols-4">
+          <Step n="01" title="BUY THE PIECE" body="Order any garment from our IRL drop. Ships in 3–5 days, in a recycled mailer." />
+          <Step n="02" title="MINT THE TWIN" body="A pixel-art NFT twin is forged on-chain and lands in your WardrobeForge inventory." />
+          <Step n="03" title="UNLOCK A RELIC" body="Each NFT rolls a unique virtual relic — staff, helm, cloak, orb — with its own ID and serial." />
+          <Step n="04" title="EARN + EQUIP" body="Wear it on your avatar, port it across worlds, and bank 100 points in our VTO AI app." />
+        </div>
+      </section>
+
+      <section className="page" style={{ paddingTop:0 }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:24, flexWrap:'wrap' }}>
+          <h2 className="pixel" style={{ fontSize:22 }}>FEATURED RELICS</h2>
+          <span className="mono" style={{ fontSize:18, opacity:.6 }}>// rolling now</span>
+          <span style={{ marginLeft:'auto' }}><button className="pxl-btn ghost" onClick={() => goto('nfts')}>VIEW ALL</button></span>
+        </div>
+        <div className="grid cols-4">
+          {featured.map(n => <NFTCard key={n.id} nft={n} onClick={() => goto('nfts', n.id)} />)}
+        </div>
+      </section>
+
+      <section className="page" style={{ paddingTop:0 }}>
+        <div className="pxl-box" style={{ background:'var(--ink)', color:'#fff', padding:36, position:'relative', overflow:'hidden' }}>
+          <PixelHeart size={5} color="#F85646" style={{ right:40, top:30 }} />
+          <PixelHeart size={3} color="#FFB8C8" style={{ right:90, top:80 }} />
+          <PixelHeart size={4} color="#FFE9A8" style={{ right:20, top:130 }} />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:40 }}>
+            <div>
+              <h2 className="pixel" style={{ fontSize:22, color:'var(--coral-soft)', marginBottom:14 }}>WHY THIS WORKS</h2>
+              <p style={{ fontSize:22, lineHeight:1.4, marginBottom:14 }}>Counterfeit goods cost the apparel industry $50B+ a year. We solve it by making the<b style={{ color:'var(--pink-neon)' }}> proof of authenticity </b>more fun than the bootleg.</p>
+              <p style={{ fontSize:20, opacity:.8 }}>Every NFT twin doubles as a passport: scan, verify, equip, earn. The collector knows it's real. The avatar knows it's rare. The wardrobe never lies.</p>
+            </div>
+            <ul style={{ listStyle:'none', display:'flex', flexDirection:'column', gap:14 }}>
+              <BulletPoint icon="🔒" t="ANTI-COUNTERFEIT" b="On-chain receipt tied to a serial woven into the garment." />
+              <BulletPoint icon="✨" t="VIRTUAL TRY-ON" b="Render any owned item on your chibi in the avatar lab." />
+              <BulletPoint icon="⭐" t="100 POINTS / NFT" b="Drop into our Wardrobe VTO AI app and stack them." />
+              <BulletPoint icon="🌐" t="PORTABLE" b="Wearable in any partner world. ERC-1155 baseline." />
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="page" style={{ textAlign:'center', paddingTop:0 }}>
+        <h2 className="pixel" style={{ fontSize:26, marginBottom:14 }}>READY TO SUIT UP?</h2>
+        <p className="mono" style={{ fontSize:22, opacity:.7, marginBottom:22 }}>Press start. The forge is open.</p>
+        <button className="pxl-btn" onClick={() => goto('avatar')}>OPEN MY WARDROBE</button>
+        <span className="blink" style={{ display:'inline-block', marginLeft:14, fontFamily:'PressStart', fontSize:14, color:'var(--coral)' }}>▶</span>
+      </section>
+    </div>
+  );
+};
+
+window.MainPage = MainPage;
+window.NFTCard = NFTCard;
+</script>
+
+<!-- page-avatar.jsx -->
+<script type="text/babel">
+const AvatarPage = ({ initialEquip }) => {
+  const [skin, setSkin] = useState('light');
+  const [eye, setEye] = useState('brown');
+  const [equipped, setEquipped] = useState(initialEquip || { head:'starCrown', outfit:'cropPink', item:'starWand', boots:null });
+  const [activeSlot, setActiveSlot] = useState('head');
+  const [bg, setBg] = useState('cloud');
+  const [uploadedPixelData, setUploadedPixelData] = useState(null);
+  const [skinColorMap, setSkinColorMap] = useState({});
+  const [eyeColorMap, setEyeColorMap] = useState({});
+  const [showUploader, setShowUploader] = useState(false);
+
+  const ownedNFTs = NFT_LIBRARY.filter(n => n.owned);
+  const slotItems = ownedNFTs.filter(n => n.slot === activeSlot);
+  const bootsItems = [
+    { id:'BOOTS-001', name:'Stardust Boots', art:'starAura', slot:'boots', rarity:'Epic', serial:'#0007 / 50' },
+    { id:'BOOTS-002', name:'Ember Greaves',  art:'emberAura', slot:'boots', rarity:'Legendary', serial:'#0001 / 10' },
+  ];
+
+  const totalPoints =
+    (equipped.head   ? (NFT_LIBRARY.find(n => n.art === equipped.head)?.pointsBonus   || 0) : 0) +
+    (equipped.outfit ? (NFT_LIBRARY.find(n => n.art === equipped.outfit)?.pointsBonus || 0) : 0) +
+    (equipped.item   ? (NFT_LIBRARY.find(n => n.art === equipped.item)?.pointsBonus   || 0) : 0);
+
+  const equip = (artId) => setEquipped(e => ({ ...e, [activeSlot]: e[activeSlot] === artId ? null : artId }));
+
+  const stageStyle = {
+    cloud: { background:'linear-gradient(to bottom, #A8DEFF 0%, #FFB8C8 60%, #FFE9A8 100%)' },
+    night: { background:'linear-gradient(to bottom, #1A1330 0%, #4A2C5E 60%, #8E5CF7 100%)' },
+    dojo:  { background:'linear-gradient(to bottom, #F8E9E5 0%, #DCC7C7 100%)' },
+    void:  { background:'radial-gradient(ellipse at center, #4A3838 0%, #2A1B1B 100%)' },
+  }[bg];
+
+  const SlotCell = ({ slot, active, equippedArt, onClick }) => (
+    <div onClick={onClick} className="pxl-box no-drop"
+      style={{ background:active?'var(--coral)':'#fff', cursor:'pointer', padding:10, textAlign:'center',
+        boxShadow: active ? '0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink), 0 8px 0 0 var(--coral-deep)' : '0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink)' }}>
+      <div className="pixel" style={{ fontSize:8, marginBottom:6, color:active?'#fff':'var(--ink)' }}>{slot.toUpperCase()}</div>
+      <div style={{ background:active?'#fff':'var(--paper-2)', height:56, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        {equippedArt ? <ClothingArt id={equippedArt} scale={2} /> : <span className="mono" style={{ fontSize:14, opacity:.4 }}>empty</span>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="page">
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, flexWrap:'wrap' }}>
+        <h1 className="pixel" style={{ fontSize:26 }}>MY AVATAR</h1>
+        <span className="mono" style={{ fontSize:20, opacity:.6 }}>// dress your chibi. earn your points.</span>
+        <span style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
+          <span className="chip">VTO POINTS</span>
+          <span className="pixel" style={{ fontSize:18, color:'var(--coral)' }}>{totalPoints.toLocaleString()}</span>
+        </span>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:24 }}>
+        <div className="pxl-box scanlines" style={{ ...stageStyle, position:'relative', minHeight:600, overflow:'hidden' }}>
+          <PixelStar size={4} color="#FFFFFF" style={{ top:30, left:40 }} />
+          <PixelStar size={3} color="#FFE9A8" style={{ top:70, left:'70%' }} />
+          <PixelStar size={5} color="#FFFFFF" style={{ top:120, left:'40%' }} />
+          <SparkleDot color="#FFFFFF" size={3} style={{ top:60, left:'85%' }} />
+          <SparkleDot color="#FFE9A8" size={4} style={{ top:200, left:90 }} />
+          <div className="gridfloor" />
+          <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)' }}>
+            <div className="float">
+              {uploadedPixelData
+                ? <PixelizedAvatar pixelData={uploadedPixelData} colorMap={{ ...skinColorMap, ...eyeColorMap }} scale={8} />
+                : <ChibiAvatar skin={skin} eye={eye} scale={8} equipped={equipped} />}
+            </div>
+          </div>
+          <div style={{ position:'absolute', bottom:20, left:20, right:20, display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+            <div className="pxl-box dark" style={{ padding:'10px 14px' }}>
+              <div className="pixel" style={{ fontSize:12, color:'var(--coral-soft)' }}>WANDERER · LV 14</div>
+              <div className="mono" style={{ fontSize:18 }}>WardrobeForge.eth</div>
+            </div>
+            <div className="pxl-box dark" style={{ padding:'10px 14px', minWidth:220 }}>
+              <div className="pixel" style={{ fontSize:9, marginBottom:6, color:'var(--pink-neon)' }}>WARDROBE XP</div>
+              <div className="bar"><i style={{ width:'72%' }} /></div>
+              <div className="mono" style={{ fontSize:14, marginTop:4 }}>1,420 / 2,000 XP</div>
+            </div>
+          </div>
+          <div style={{ position:'absolute', top:14, right:14, display:'flex', gap:6 }}>
+            {['cloud','night','dojo','void'].map(b => (
+              <button key={b} className={`opt ${bg===b?'active':''}`} onClick={() => setBg(b)}>{b}</button>
+            ))}
+          </div>
+          <div style={{ position:'absolute', top:14, left:14, display:'flex', flexDirection:'column', gap:8 }}>
+            {!uploadedPixelData && <>
+              <div className="pxl-box no-drop" style={{ background:'rgba(255,255,255,.92)', padding:8 }}>
+                <div className="pixel" style={{ fontSize:8, marginBottom:6 }}>SKIN</div>
+                <div style={{ display:'flex', gap:4 }}>
+                  {Object.keys(SKIN_TONES).map(s => (
+                    <button key={s} onClick={() => setSkin(s)} title={s}
+                      style={{ width:22, height:22, border:skin===s?'3px solid var(--ink)':'3px solid transparent', background:SKIN_TONES[s].mid, cursor:'pointer', boxShadow:'0 0 0 2px var(--ink)', padding:0 }} />
+                  ))}
+                </div>
+              </div>
+              <div className="pxl-box no-drop" style={{ background:'rgba(255,255,255,.92)', padding:8 }}>
+                <div className="pixel" style={{ fontSize:8, marginBottom:6 }}>EYES</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(6, 22px)', gap:4 }}>
+                  {Object.keys(EYE_COLORS).map(k => (
+                    <button key={k} onClick={() => setEye(k)} title={k}
+                      style={{ width:22, height:22, border:eye===k?'3px solid var(--ink)':'3px solid transparent', background:EYE_COLORS[k], cursor:'pointer', boxShadow:'0 0 0 2px var(--ink)', padding:0 }} />
+                  ))}
+                </div>
+              </div>
+            </>}
+            <button className="pxl-btn" style={{ fontSize:8, padding:'6px 10px' }} onClick={() => setShowUploader(!showUploader)}>
+              {uploadedPixelData ? 'CHANGE IMAGE' : 'UPLOAD IMAGE'}
+            </button>
+            {uploadedPixelData && <button className="pxl-btn ghost" style={{ fontSize:8, padding:'6px 10px' }} onClick={() => { setUploadedPixelData(null); setSkinColorMap({}); setEyeColorMap({}); }}>USE CHIBI</button>}
+          </div>
+        </div>
+
+        <div className="pxl-box" style={{ background:'#fff', padding:22 }}>
+          <div className="pixel" style={{ fontSize:14, marginBottom:14 }}>LOADOUT</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8, marginBottom:18 }}>
+            {['head','outfit','item','boots'].map(slot => (
+              <SlotCell key={slot} slot={slot} active={activeSlot===slot} equippedArt={equipped[slot]} onClick={() => setActiveSlot(slot)} />
+            ))}
+          </div>
+          <hr className="pxl-hr" />
+          <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:12 }}>
+            <div className="pixel" style={{ fontSize:12 }}>INVENTORY</div>
+            <div className="mono" style={{ fontSize:16, opacity:.6 }}>// {activeSlot.toUpperCase()} SLOT</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10, maxHeight:380, overflowY:'auto', paddingRight:6 }}>
+            {(activeSlot==='boots' ? bootsItems : slotItems).map(item => {
+              const isEquipped = equipped[activeSlot] === item.art;
+              return (
+                <div key={item.id} className="pxl-box no-drop" onClick={() => equip(item.art)}
+                  style={{ background:isEquipped?'var(--ink)':'#fff', color:isEquipped?'#fff':'var(--ink)', padding:8, cursor:'pointer', position:'relative' }}>
+                  {isEquipped && <span className="chip coral" style={{ position:'absolute', top:4, right:4, fontSize:8 }}>ON</span>}
+                  <div style={{ background:isEquipped?'#3D2828':'var(--paper-2)', height:80, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:6 }}>
+                    <ClothingArt id={item.art} scale={2.5} />
+                  </div>
+                  <div className="pixel" style={{ fontSize:8, lineHeight:1.3 }}>{item.name}</div>
+                  <div className="mono" style={{ fontSize:13, opacity:.7 }}>{item.serial}</div>
+                </div>
+              );
+            })}
+            {(activeSlot==='boots' ? bootsItems : slotItems).length === 0 && (
+              <div style={{ gridColumn:'1 / -1', padding:24, textAlign:'center', color:'var(--ink)', opacity:.5 }} className="mono">Nothing here yet. Buy a piece to mint a twin.</div>
+            )}
+          </div>
+          <hr className="pxl-hr" />
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            <button className="pxl-btn ghost" style={{ flex:1 }} onClick={() => setEquipped({ head:null, outfit:null, item:null, boots:null })}>UNEQUIP ALL</button>
+            <button className="pxl-btn" style={{ flex:1 }}>SAVE LOOK</button>
+          </div>
+        </div>
+      </div>
+
+      {showUploader && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.7)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div className="pxl-box" style={{ background:'#fff', padding:24, maxWidth:600, width:'100%' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+              <h2 className="pixel" style={{ fontSize:16 }}>PIXELIZE YOUR AVATAR</h2>
+              <button className="pxl-btn ghost" onClick={() => setShowUploader(false)}>CLOSE</button>
+            </div>
+            <ImagePixelizerTool onPixelDataReady={data => { setUploadedPixelData(data); setSkinColorMap({}); setEyeColorMap({}); setShowUploader(false); }} />
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop:24 }} className="pxl-box no-drop">
+        <div style={{ background:'var(--ink)', color:'#fff', padding:'10px 16px' }}>
+          <div className="pixel" style={{ fontSize:11, color:'var(--pink-neon)' }}>CURRENTLY EQUIPPED</div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:1, background:'var(--ink)' }}>
+          {['head','outfit','item','boots'].map(slot => {
+            const art = equipped[slot];
+            const nft = art ? NFT_LIBRARY.find(n => n.art===art) || bootsItems.find(a => a.art===art) : null;
+            return (
+              <div key={slot} style={{ background:'#fff', padding:14 }}>
+                <div className="pixel" style={{ fontSize:9, opacity:.6, marginBottom:6 }}>{slot.toUpperCase()}</div>
+                {nft ? <>
+                  <div className="pixel" style={{ fontSize:12, marginBottom:4 }}>{nft.name}</div>
+                  <div className="mono" style={{ fontSize:16, opacity:.7 }}>{nft.serial || '?'}</div>
+                </> : <div className="mono" style={{ fontSize:16, opacity:.4 }}>— empty —</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+window.AvatarPage = AvatarPage;
+</script>
+
+<!-- page-nfts.jsx -->
+<script type="text/babel">
+const NFTsPage = ({ initialId }) => {
+  const [selectedId, setSelectedId] = useState(initialId || NFT_LIBRARY[0].id);
+  const [filter, setFilter] = useState('All');
+  const [rarity, setRarity] = useState('All');
+  const selected = NFT_LIBRARY.find(n => n.id === selectedId);
+  const filtered = NFT_LIBRARY.filter(n => {
+    if (filter !== 'All' && n.slot !== filter.toLowerCase()) return false;
+    if (rarity !== 'All' && n.rarity !== rarity) return false;
+    return true;
+  });
+
+  const FilterGroup = ({ label, value, onChange, options }) => (
+    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      <span className="pixel" style={{ fontSize:10, opacity:.6 }}>{label}</span>
+      <div className="opts">
+        {options.map(o => <button key={o} className={`opt ${value===o?'active':''}`} onClick={() => onChange(o)}>{o}</button>)}
+      </div>
+    </div>
+  );
+
+  const Legend = ({ title, items }) => (
+    <div>
+      <div className="pixel" style={{ fontSize:10, color:'var(--coral)', marginBottom:8 }}>{title}</div>
+      <ul style={{ listStyle:'none', display:'flex', flexDirection:'column', gap:4 }}>
+        {items.map(i => <li key={i} style={{ fontSize:18, display:'flex', gap:6 }}><span style={{ color:'var(--coral)' }}>▸</span> {i}</li>)}
+      </ul>
+    </div>
+  );
+
+  return (
+    <div className="page">
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:18, flexWrap:'wrap' }}>
+        <h1 className="pixel" style={{ fontSize:26 }}>CLOTHING NFTS</h1>
+        <span className="mono" style={{ fontSize:20, opacity:.6 }}>// the relics you might roll</span>
+      </div>
+      <div className="pxl-box" style={{ background:'#fff', padding:16, marginBottom:24 }}>
+        <div style={{ display:'flex', gap:18, flexWrap:'wrap', alignItems:'center' }}>
+          <FilterGroup label="SLOT" value={filter} onChange={setFilter} options={['All','Head','Outfit','Item','Boots']} />
+          <FilterGroup label="RARITY" value={rarity} onChange={setRarity} options={['All','Common','Rare','Epic','Legendary']} />
+          <span style={{ marginLeft:'auto' }} className="mono">{filtered.length} relics</span>
+        </div>
+      </div>
+      <div className="pxl-box no-drop" style={{ background:'#fff' }}>
+        <div className="split">
+          <div className="dither-bg scanlines" style={{ padding:36, position:'relative', minHeight:540, display:'flex', alignItems:'center', justifyContent:'center', borderRight:'4px solid var(--ink)' }}>
+            <div style={{ position:'relative' }}>
+              <PixelStar size={3} color="#FFE9A8" style={{ left:-30, top:-10 }} />
+              <PixelStar size={2} color="#F85646" style={{ right:-20, top:30 }} />
+              <SparkleDot color="#FFFFFF" size={3} style={{ left:-10, bottom:40 }} />
+              <div className="float"><ClothingArt id={selected.art} scale={12} /></div>
+            </div>
+            <div style={{ position:'absolute', top:16, left:16 }}>
+              <span className={`chip ${RARITY_COLOR[selected.rarity]}`} style={{ fontSize:10 }}>{selected.rarity.toUpperCase()}</span>
+              <span className="chip" style={{ marginLeft:6, fontSize:10 }}>{selected.slot.toUpperCase()}</span>
+            </div>
+            <div style={{ position:'absolute', bottom:16, left:16, right:16, display:'flex', justifyContent:'space-between' }} className="pixel">
+              <span style={{ fontSize:11 }}>{selected.id}</span>
+              <span style={{ fontSize:11, color:'var(--coral)' }}>{selected.serial}</span>
+            </div>
+          </div>
+          <div style={{ padding:32 }}>
+            <div className="pixel" style={{ fontSize:11, color:'var(--coral)', marginBottom:6 }}>{selected.slot.toUpperCase()} · {selected.rarity.toUpperCase()}</div>
+            <h2 className="pixel" style={{ fontSize:20, marginBottom:6 }}>{selected.name}</h2>
+            <div className="mono" style={{ fontSize:18, opacity:.7, marginBottom:16 }}>{selected.serial}</div>
+            <p className="mono" style={{ fontSize:19, marginBottom:22, padding:'12px 14px', background:'var(--paper-2)', borderLeft:'4px solid var(--coral)' }}>"{selected.lore}"</p>
+            <div style={{ marginBottom:20 }}>
+              <div className="pixel" style={{ fontSize:11, marginBottom:8 }}>STATS</div>
+              <div className="stat-row"><span className="stat-key">FABRIC</span><span className="stat-val">{selected.fabric}</span></div>
+              <div className="stat-row"><span className="stat-key">FIT</span><span className="stat-val">{selected.fit}</span></div>
+              <div className="stat-row"><span className="stat-key">FINISH</span><span className="stat-val">{selected.finish}</span></div>
+              <div className="stat-row"><span className="stat-key">COLOR</span><span className="stat-val">{selected.color}</span></div>
+              <div className="stat-row"><span className="stat-key">MINT</span><span className="stat-val" style={{ color:'var(--coral)', fontFamily:'PressStart, monospace', fontSize:12 }}>{selected.mint.toUpperCase()}</span></div>
+            </div>
+            <div className="pxl-box no-drop" style={{ background:'var(--ink)', color:'#fff', padding:14 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                <div className="pixel" style={{ fontSize:10, color:'var(--pink-neon)' }}>VTO BONUS</div>
+                <div className="pixel" style={{ fontSize:18, color:'var(--coral-soft)' }}>+{selected.pointsBonus} PTS</div>
+              </div>
+              <div className="bar"><i style={{ width:`${(selected.pointsBonus/250)*100}%` }} /></div>
+            </div>
+            <div style={{ display:'flex', gap:8, marginTop:18, flexWrap:'wrap' }}>
+              {selected.owned
+                ? <><button className="pxl-btn">EQUIP ON AVATAR</button><button className="pxl-btn ghost">VIEW ON-CHAIN</button></>
+                : <><button className="pxl-btn">BUY THE GARMENT</button><button className="pxl-btn ghost">HOW TO ROLL</button></>}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop:36 }}>
+        <div className="pixel" style={{ fontSize:14, marginBottom:14 }}>BROWSE THE FORGE</div>
+        <div className="grid cols-4">
+          {filtered.map(n => (
+            <div key={n.id} onClick={() => setSelectedId(n.id)} style={{ position:'relative', outline:n.id===selectedId?'4px solid var(--coral)':'none', outlineOffset:4 }}>
+              <NFTCard nft={n} owned={n.owned} onClick={() => setSelectedId(n.id)} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="pxl-box" style={{ background:'#fff', padding:24, marginTop:36 }}>
+        <div className="pixel" style={{ fontSize:14, marginBottom:16 }}>ATTRIBUTE LEGEND</div>
+        <div className="grid cols-3" style={{ gap:18 }}>
+          <Legend title="FABRIC" items={['Cotton','Denim','Leather','Silk','Techwear (nylon/poly)']} />
+          <Legend title="FIT" items={['Oversized','Slim','Cropped','Structured']} />
+          <Legend title="FINISH" items={['Matte','Glossy','Distressed','Washed','Reflective','Metallic threading']} />
+          <Legend title="COLOR" items={['Solid','Gradients','Color-shifting (rare)','Pattern (camo/stripes/abstract)']} />
+          <Legend title="MINT TIER" items={['Mint (brand new)','Worn (slight fade)','Vintage (high value)','Legendary (relic)']} />
+          <Legend title="RARITY ROLL" items={['Common · 70%','Rare · 22%','Epic · 7%','Legendary · 1%']} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+window.NFTsPage = NFTsPage;
+</script>
+
+<!-- page-legal.jsx -->
+<script type="text/babel">
+const PrivacyPage = () => (
+  <div className="page">
+    <div className="legal pxl-box">
+      <h1>PRIVACY POLICY</h1>
+      <div className="meta">EFFECTIVE: 04/12/2026 · VERSION 3.1 · WARDROBEFORGE</div>
+      <hr className="pxl-hr" />
+      <h2>1. INTRODUCTION</h2>
+      <p>WardrobeForge ("WardrobeForge," "we," "us," or "our") respects your privacy and is committed to protecting it through this Privacy Policy. This Policy describes the types of information we may collect from you when you visit wardrobeforge.app, our mobile applications, virtual try-on experience ("VTO Services"), and blockchain-linked digital twin services (collectively, the "Services").</p>
+      <h2>2. INFORMATION WE COLLECT</h2>
+      <h3>2.1 Information You Provide</h3>
+      <ul>
+        <li>Account information (display name, email, mailing address for IRL garment fulfillment).</li>
+        <li>Payment information processed by our PCI-DSS compliant payment processors.</li>
+        <li>Public wallet addresses you connect for minting, transferring, or displaying NFTs.</li>
+        <li>Avatar configuration data, including selected skins, equipped items, and saved looks.</li>
+        <li>User-generated content, including any imagery you upload to the VTO Services.</li>
+      </ul>
+      <h2>3. HOW WE USE YOUR INFORMATION</h2>
+      <ul>
+        <li>To present the Services and fulfill physical garment orders.</li>
+        <li>To mint, transfer, and verify the authenticity of digital twin NFTs.</li>
+        <li>To award, calculate, and apply VTO Points (100 points per qualifying NFT mint).</li>
+        <li>To detect counterfeit goods and honor anti-counterfeit warranties.</li>
+        <li>To improve our Services and develop new features, including AI-driven try-on rendering.</li>
+      </ul>
+      <h2>4. BLOCKCHAIN AND ON-CHAIN DATA</h2>
+      <p>You acknowledge that information written to a public blockchain — including wallet addresses, NFT token IDs, transfer events, and metadata URIs — is inherently public, immutable, and not subject to deletion.</p>
+      <h2>5. DATA SECURITY</h2>
+      <p>We have implemented measures designed to secure your personal information, including encryption-in-transit (TLS 1.3) and encryption-at-rest (AES-256) where applicable.</p>
+      <h2>6. YOUR DATA RIGHTS</h2>
+      <p>Depending on your jurisdiction (including under the GDPR, UK GDPR, CCPA, and CPRA), you may have the right to access, correct, port, or delete the personal information we hold about you. Contact us at privacy@wardrobeforge.app.</p>
+      <h2>7. CONTACT</h2>
+      <p>WardrobeForge LLC · 1309 Coffeen Avenue · Sheridan, Suite 1200 · Wyoming, 82801 · info@wardrobeforge.com</p>
+    </div>
+  </div>
+);
+
+const TermsPage = () => (
+  <div className="page">
+    <div className="legal pxl-box">
+      <h1>TERMS OF SERVICE</h1>
+      <div className="meta">EFFECTIVE: 04/12/2026 · VERSION 3.1 · PLEASE READ CAREFULLY</div>
+      <hr className="pxl-hr" />
+      <h2>1. ACCEPTANCE OF TERMS</h2>
+      <p>These Terms of Service ("Terms") form a binding agreement between you and WardrobeForge governing your access to and use of the WardrobeForge website, applications, VTO Services, and digital twin offerings. By accessing the Services, you represent that you are at least eighteen (18) years of age.</p>
+      <h2>2. THE WARDROBEFORGE PROTOCOL</h2>
+      <h3>2.1 Physical Goods and Digital Twins</h3>
+      <p>Each qualifying physical garment sold by WardrobeForge is paired with a non-fungible token ("Digital Twin" or "NFT") minted to a blockchain address you control. The Digital Twin represents (a) a proof of authenticity for the Garment, (b) a wearable virtual relic redeemable in our Services, and (c) a one-time award of one hundred (100) VTO Points.</p>
+      <h3>2.2 Random Allocation</h3>
+      <p>The specific virtual relic granted by a Digital Twin is allocated by a verifiable randomness function. WardrobeForge makes no representation that any particular relic, rarity tier, or aesthetic outcome will be produced by a given mint.</p>
+      <h2>3. PAYMENT, FULFILLMENT AND RETURNS</h2>
+      <ul>
+        <li>All Garment prices are listed in U.S. dollars exclusive of taxes and shipping.</li>
+        <li>Garments ship within five (5) business days of order confirmation, subject to inventory.</li>
+        <li>Returns are accepted within fourteen (14) days of delivery for unworn items in original packaging. <b>The associated Digital Twin NFT is non-refundable and shall be returned to the WardrobeForge treasury upon Garment refund.</b></li>
+      </ul>
+      <h2>4. INTELLECTUAL PROPERTY</h2>
+      <p>WardrobeForge retains all right, title, and interest in and to the Services. Subject to your continued ownership of the corresponding Digital Twin, WardrobeForge grants you a worldwide, non-exclusive, royalty-free license to display and use the relic artwork for personal, non-commercial purposes, and for commercial use generating less than USD $100,000 per year.</p>
+      <h2>5. GOVERNING LAW</h2>
+      <p>These Terms are governed by the laws of the State of Delaware. Any dispute arising hereunder shall be resolved by binding arbitration administered by JAMS in San Francisco, California.</p>
+      <h2>6. CONTACT</h2>
+      <p>Questions about these Terms should be sent to legal@wardrobeforge.app.</p>
+    </div>
+  </div>
+);
+
+window.PrivacyPage = PrivacyPage;
+window.TermsPage = TermsPage;
+</script>
+
+<!-- app.jsx -->
+<script type="text/babel">
+const { useState: useStateApp, useEffect: useEffectApp } = React;
+
+const App = () => {
+  const [page, setPage] = useStateApp(() => window.location.hash.replace('#','') || 'main');
+  const [nftFocus, setNftFocus] = useStateApp(null);
+  const [tweaks, setTweak] = useTweaks({ accent:'#F85646', scanlines:true, skin:'lavender', fontScale:1 });
+
+  useEffectApp(() => {
+    document.documentElement.style.setProperty('--coral', tweaks.accent);
+    document.documentElement.style.fontSize = (16 * tweaks.fontScale) + 'px';
+  }, [tweaks.accent, tweaks.fontScale]);
+
+  const goto = (p, focus) => {
+    setPage(p);
+    if (focus) setNftFocus(focus);
+    window.location.hash = p;
+    window.scrollTo(0, 0);
+  };
+
+  useEffectApp(() => {
+    const onHash = () => setPage(window.location.hash.replace('#','') || 'main');
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  return (
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column' }}>
+      <nav className="nav">
+        <div className="logo" onClick={() => goto('main')}>
+          <img src="assets/logo.png?v=2" alt="WardrobeForge" onError={e => e.target.style.display='none'} />
+          <span>WARDROBE<span style={{ color:'var(--coral)' }}>FORGE</span></span>
+        </div>
+        <div className="links">
+          <div className={`link ${page==='main'?'active':''}`} onClick={() => goto('main')}>HOME</div>
+          <div className={`link ${page==='avatar'?'active':''}`} onClick={() => goto('avatar')}>MY AVATAR</div>
+          <div className={`link ${page==='nfts'?'active':''}`} onClick={() => goto('nfts')}>CLOTHING NFTS</div>
+          <div className={`link ${page==='privacy'?'active':''}`} onClick={() => goto('privacy')}>PRIVACY</div>
+          <div className={`link ${page==='terms'?'active':''}`} onClick={() => goto('terms')}>TERMS</div>
+          <button className="pxl-btn" style={{ marginLeft:8 }} onClick={() => goto('avatar')}>CONNECT</button>
+        </div>
+      </nav>
+
+      <main style={{ flex:1 }}>
+        {page === 'main'    && <MainPage goto={goto} />}
+        {page === 'avatar'  && <AvatarPage />}
+        {page === 'nfts'    && <NFTsPage initialId={nftFocus} />}
+        {page === 'privacy' && <PrivacyPage />}
+        {page === 'terms'   && <TermsPage />}
+      </main>
+
+      <footer className="foot">
+        <div style={{ marginBottom:14 }}>© WARDROBEFORGE · 2026 · EVERY THREAD A TWIN</div>
+        <div>
+          <a onClick={() => goto('main')} style={{ cursor:'pointer' }}>HOME</a> ·
+          <a onClick={() => goto('avatar')} style={{ cursor:'pointer' }}>AVATAR</a> ·
+          <a onClick={() => goto('nfts')} style={{ cursor:'pointer' }}>NFTS</a> ·
+          <a onClick={() => goto('privacy')} style={{ cursor:'pointer' }}>PRIVACY</a> ·
+          <a onClick={() => goto('terms')} style={{ cursor:'pointer' }}>TERMS</a>
+        </div>
+      </footer>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Look & Feel">
+          <TweakColor label="Accent color" value={tweaks.accent} onChange={v => setTweak('accent', v)} />
+          <TweakToggle label="Font scale" value={tweaks.scanlines} onChange={v => setTweak('scanlines', v)} />
+          <TweakSlider label="Font scale" min={0.85} max={1.2} step={0.05} value={tweaks.fontScale} onChange={v => setTweak('fontScale', v)} />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
