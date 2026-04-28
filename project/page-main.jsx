@@ -82,22 +82,12 @@ const MainPage = ({ goto }) => {
                 alt="WardrobeForge avatar"
                 style={{
                   display: 'block',
-                  width: 210,
+                  width: 240,
                   height: 'auto',
                   imageRendering: 'pixelated',
                 }}
               />
             </div>
-
-            {/* cloud platform */}
-            <div style={{
-              position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)',
-              width: 220, height: 40,
-              background: '#FFFFFF',
-              borderRadius: '50%',
-              boxShadow: '0 6px 0 0 rgba(42,27,27,.15)',
-              opacity: .9,
-            }} />
           </div>
         </div>
       </section>

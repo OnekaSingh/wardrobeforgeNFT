@@ -12,10 +12,6 @@ const AvatarPage = ({ initialEquip }) => {
   const [activeSlot, setActiveSlot] = useState('head');
   const [bg, setBg] = useState('cloud');
 
-  const [uploadedPixelData, setUploadedPixelData] = useState(null);
-  const [editableRegions, setEditableRegions] = useState({ skin: [], eyes: [] });
-  const [defaultAvatarAttempted, setDefaultAvatarAttempted] = useState(false);
-
   const ownedNFTs = NFT_LIBRARY.filter(n => n.owned);
   const slotItems = ownedNFTs.filter(n => n.slot === activeSlot);
   const bootsItems = [
@@ -35,33 +31,6 @@ const AvatarPage = ({ initialEquip }) => {
     dojo: { background: 'linear-gradient(to bottom, #F8E9E5 0%, #DCC7C7 100%)' },
     void: { background: 'radial-gradient(ellipse at center, #4A3838 0%, #2A1B1B 100%)' },
   }[bg];
-
-  const uploadedColorMap = uploadedPixelData
-    ? buildUploadedAvatarColorMap(editableRegions, SKIN_TONES, EYE_COLORS, skin, eye)
-    : {};
-
-  React.useEffect(() => {
-    if (defaultAvatarAttempted) return;
-    setDefaultAvatarAttempted(true);
-
-    const img = new Image();
-    img.onload = async () => {
-      const data = await PixelizerUtils.pixelateImage(img, 4, 32);
-      setUploadedPixelData(data);
-      setEditableRegions(data.suggestedRegions || { skin: [], eyes: [] });
-    };
-    img.src = 'avatar.png';
-  }, [defaultAvatarAttempted]);
-
-  React.useEffect(() => {
-    if (!uploadedPixelData) return;
-    saveAvatarState({
-      pixelData: uploadedPixelData,
-      editableRegions,
-      skin,
-      eye,
-    });
-  }, [uploadedPixelData, editableRegions, skin, eye]);
 
   return (
     <div className="page">
@@ -90,15 +59,7 @@ const AvatarPage = ({ initialEquip }) => {
           {/* Avatar */}
           <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
             <div className="float">
-              {uploadedPixelData ? (
-                <PixelizedAvatar 
-                  pixelData={uploadedPixelData} 
-                  colorMap={uploadedColorMap}
-                  scale={8}
-                />
-              ) : (
-                <ChibiAvatar skin={skin} eye={eye} scale={8} equipped={equipped} />
-              )}
+              <AvatarImageWithEyeOverlay eye={eye} width={220} />
             </div>
           </div>
 
@@ -122,21 +83,10 @@ const AvatarPage = ({ initialEquip }) => {
             ))}
           </div>
 
-          {/* Skin + Eye switchers OR Color picker for uploaded avatar */}
           <div style={{ position: 'absolute', top: 14, left: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {uploadedPixelData ? (
-              <>
-                <SkinEyeSelectors skin={skin} eye={eye} setSkin={setSkin} setEye={setEye} />
-                <PixelRegionPicker
-                  pixelData={uploadedPixelData}
-                  editableRegions={editableRegions}
-                  onChange={setEditableRegions}
-                />
-              </>
-            ) : (
-              <SkinEyeSelectors skin={skin} eye={eye} setSkin={setSkin} setEye={setEye} />
-            )}
+            <SkinEyeSelectors skin={skin} eye={eye} setSkin={setSkin} setEye={setEye} />
           </div>
+
         </div>
 
         {/* LOADOUT PANEL */}
@@ -299,82 +249,156 @@ const SlotCell = ({ slot, active, equippedArt, onClick }) => (
   </div>
 );
 
-const PixelRegionPicker = ({ pixelData, editableRegions, onChange }) => {
-  const [activeRegion, setActiveRegion] = React.useState('skin');
+const AVATAR_SOURCE_WIDTH = 428;
+const AVATAR_SOURCE_HEIGHT = 583;
+const LEFT_EYE_IRIS = [
+  '.....I...............',
+  '.....III.............',
+  '.....II..I...........',
+  '.....IIIIIIII........',
+  '.....IIII.II.........',
+  'IIIIII.III.II........',
+  'IIIIIII.I...I........',
+  'IIII....II.II........',
+  'IIIIII.IIIIII........',
+  'IIIIIIIIIIIII........',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIII.II.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  '....IIIIIIIIIIIIIIIII',
+  '....IIIIIIIIIIIIIII..',
+  '....IIIIIIIIIIIIIIII.',
+  '....IIIIIIIIIIIIIIII.',
+  '....IIIIIIIIIIIIIIII.',
+  '....IIIIIIIIIIIIIIII.',
+  '....IIIIIIIIIIIIIIII.',
+  '.....I...III.........',
+];
+const RIGHT_EYE_IRIS = [
+  '...........I.........',
+  '........IIIIII.......',
+  '........IIII.I.......',
+  '........IIIIIII......',
+  '........IIIIIII......',
+  '........IIIIIIII..I..',
+  '........IIIIIIIIIIII.',
+  '........IIIIIIIIIIII.',
+  '........IIIIIIIIIIIII',
+  '........IIIIIIIIIIIII',
+  '.IIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIIII',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIIIIIII.',
+  'IIIIIIIIIIIIIIII.....',
+  'IIIIIIIIIIIIIII......',
+  'IIIIIIIIIIIIIII......',
+  'IIIIIIIIIIIIIII......',
+  'IIIIIIIIIIIIIII......',
+  'IIIIIIIIIIIIIII......',
+  'IIIIIIIIIIIIIII......',
+  '.I..I...III..........',
+];
 
-  if (!pixelData) return null;
+const AvatarImageWithEyeOverlay = ({ eye = 'brown', width = 220 }) => {
+  const canvasRef = React.useRef(null);
+  const irisColor = EYE_COLORS[eye] || EYE_COLORS.brown;
+  const scale = width / AVATAR_SOURCE_WIDTH;
 
-  const palette = pixelData.palette || [];
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
 
-  const toggleColor = (region, color) => {
-    const current = editableRegions[region] || [];
-    onChange({
-      ...editableRegions,
-      [region]: current.includes(color)
-        ? current.filter((entry) => entry !== color)
-        : [...current, color],
-    });
-  };
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = AVATAR_SOURCE_WIDTH;
+      canvas.height = AVATAR_SOURCE_HEIGHT;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+
+      if (eye !== 'brown') {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        applyEyeMask(imageData.data, LEFT_EYE_IRIS, 166, 228, irisColor, canvas.width);
+        applyEyeMask(imageData.data, RIGHT_EYE_IRIS, 243, 228, irisColor, canvas.width);
+        ctx.putImageData(imageData, 0, 0);
+      }
+    };
+
+    img.src = 'avatar.png?v=6';
+
+    return () => {
+      img.onload = null;
+    };
+  }, [eye, irisColor]);
 
   return (
-    <>
-      <div className="pxl-box no-drop" style={{ background: 'rgba(255,255,255,.92)', padding: 8 }}>
-        <div className="pixel" style={{ fontSize: 8, marginBottom: 6 }}>EDITABLE PIXELS</div>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-          <button 
-            className={`opt ${activeRegion === 'skin' ? 'active' : ''}`}
-            onClick={() => setActiveRegion('skin')}
-            style={{ fontSize: 8, padding: '4px 8px' }}
-          >
-            TAG SKIN
-          </button>
-          <button 
-            className={`opt ${activeRegion === 'eyes' ? 'active' : ''}`}
-            onClick={() => setActiveRegion('eyes')}
-            style={{ fontSize: 8, padding: '4px 8px' }}
-          >
-            TAG EYES
-          </button>
-        </div>
-
-        <div className="pixel" style={{ fontSize: 7, marginBottom: 4, opacity: 0.6 }}>
-          PICK COLORS FROM THE PIXELIZED AVATAR:
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 22px)', gap: 3, marginBottom: 8 }}>
-          {palette.slice(0, 24).map((color, idx) => {
-            const selected = (editableRegions[activeRegion] || []).includes(color);
-            return (
-            <button
-              key={idx}
-              onClick={() => toggleColor(activeRegion, color)}
-              title={color}
-              style={{
-                width: 22, height: 22,
-                border: selected ? '3px solid var(--coral)' : '2px solid var(--ink)',
-                background: color,
-                cursor: 'pointer',
-                padding: 0,
-              }}
-            />
-          )})}
-        </div>
-
-        <div className="mono" style={{ fontSize: 13, opacity: 0.7 }}>
-          Skin tags: {(editableRegions.skin || []).length} · Eye tags: {(editableRegions.eyes || []).length}
-        </div>
-      </div>
-
-      {((editableRegions.skin || []).length > 0 || (editableRegions.eyes || []).length > 0) && (
-        <button
-          className="pxl-btn ghost"
-          style={{ fontSize: 8, padding: '6px 10px' }}
-          onClick={() => onChange(pixelData.suggestedRegions || { skin: [], eyes: [] })}
-        >
-          RESET TAGS
-        </button>
-      )}
-    </>
+    <canvas
+      ref={canvasRef}
+      aria-label="WardrobeForge avatar"
+      role="img"
+      style={{
+        display: 'block',
+        width,
+        height: AVATAR_SOURCE_HEIGHT * scale,
+        imageRendering: 'pixelated',
+      }}
+    />
   );
+};
+
+const applyEyeMask = (data, shape, offsetX, offsetY, color, canvasWidth) => {
+  const rgb = hexToRgb(color);
+  if (!rgb) return;
+
+  for (let row = 0; row < shape.length; row++) {
+    for (let col = 0; col < shape[row].length; col++) {
+      if (shape[row][col] !== 'I') continue;
+      const x = offsetX + col;
+      const y = offsetY + row;
+      const idx = (y * canvasWidth + x) * 4;
+      data[idx] = rgb.r;
+      data[idx + 1] = rgb.g;
+      data[idx + 2] = rgb.b;
+    }
+  }
+};
+
+const hexToRgb = (hex) => {
+  const normalized = hex.replace('#', '');
+  if (normalized.length !== 6) return null;
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16),
+  };
 };
 
 window.AvatarPage = AvatarPage;
