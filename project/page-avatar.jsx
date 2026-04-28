@@ -1,8 +1,18 @@
 /* ============= Avatar page ============= */
 
+const HAIRSTYLES = [
+  { id: 'hair-1', src: 'hairstyles/hair-1.png', thumb: 'hairstyle_props/1.png', name: 'Style 1', offsetX: -12, offsetY: 0 },
+  { id: 'hair-2', src: 'hairstyles/hair-2.png', thumb: 'hairstyle_props/2.png', name: 'Style 2', offsetX: -40, offsetY: 0 },
+  { id: 'hair-3', src: 'hairstyles/hair-3.png', thumb: 'hairstyle_props/3.png', name: 'Style 3', offsetX: 18, offsetY: -12 },
+  { id: 'hair-4', src: 'hairstyles/hair-4.png', thumb: 'hairstyle_props/4.png', name: 'Style 4', offsetX: 18, offsetY: -78, drawW: 1080 },
+  { id: 'hair-5', src: 'hairstyles/hair-5.png', thumb: 'hairstyle_props/5.png', name: 'Style 5', offsetX: 6, offsetY: -18 },
+  { id: 'hair-6', src: 'hairstyles/hair-6.png', thumb: 'hairstyle_props/6.png', name: 'Style 6', offsetX: 18, offsetY: -18 },
+];
+
 const AvatarPage = ({ initialEquip }) => {
   const [skin, setSkin] = useState('light');
   const [eye, setEye] = useState('brown');
+  const [hair, setHair] = useState('hair-1');
   const [equipped, setEquipped] = useState(initialEquip || {
     head: 'starCrown',
     outfit: 'cropPink',
@@ -59,7 +69,7 @@ const AvatarPage = ({ initialEquip }) => {
           {/* Avatar */}
           <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
             <div className="float">
-              <AvatarImageWithEyeOverlay eye={eye} width={220} />
+              <AvatarImageWithEyeOverlay eye={eye} hair={hair} width={220} />
             </div>
           </div>
 
@@ -84,7 +94,7 @@ const AvatarPage = ({ initialEquip }) => {
           </div>
 
           <div style={{ position: 'absolute', top: 14, left: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <SkinEyeSelectors skin={skin} eye={eye} setSkin={setSkin} setEye={setEye} />
+            <SkinEyeSelectors skin={skin} eye={eye} hair={hair} setSkin={setSkin} setEye={setEye} setHair={setHair} />
           </div>
 
         </div>
@@ -181,7 +191,7 @@ const AvatarPage = ({ initialEquip }) => {
 );
 };
 
-const SkinEyeSelectors = ({ skin, eye, setSkin, setEye }) => (
+const SkinEyeSelectors = ({ skin, eye, hair, setSkin, setEye, setHair }) => (
   <>
     <div className="pxl-box no-drop" style={{ background: 'rgba(255,255,255,.92)', padding: 8 }}>
       <div className="pixel" style={{ fontSize: 8, marginBottom: 6 }}>SKIN</div>
@@ -207,21 +217,59 @@ const SkinEyeSelectors = ({ skin, eye, setSkin, setEye }) => (
     <div className="pxl-box no-drop" style={{ background: 'rgba(255,255,255,.92)', padding: 8 }}>
       <div className="pixel" style={{ fontSize: 8, marginBottom: 6 }}>EYES</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 22px)', gap: 4 }}>
-        {Object.keys(EYE_COLORS).map((eyeKey) => (
+        {Object.keys(EYE_COLORS).map((eyeKey) => {
+          const swatchStyle = eyeKey === 'gradient'
+            ? { background: 'linear-gradient(135deg, #F85646, #DCC7C7)' }
+            : eyeKey === 'hetero'
+              ? { background: 'linear-gradient(135deg, #833303 50%, #333CE0 50%)' }
+              : { background: EYE_COLORS[eyeKey] };
+          return (
+            <button
+              key={eyeKey}
+              onClick={() => setEye(eyeKey)}
+              title={eyeKey}
+              style={{
+                width: 22,
+                height: 22,
+                border: eye === eyeKey ? '3px solid var(--ink)' : '3px solid transparent',
+                cursor: 'pointer',
+                boxShadow: '0 0 0 2px var(--ink)',
+                padding: 0,
+                ...swatchStyle,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+    <div className="pxl-box no-drop" style={{ background: 'rgba(255,255,255,.92)', padding: 8 }}>
+      <div className="pixel" style={{ fontSize: 8, marginBottom: 6 }}>HAIR</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+        {HAIRSTYLES.map((h) => (
           <button
-            key={eyeKey}
-            onClick={() => setEye(eyeKey)}
-            title={eyeKey}
+            key={h.id}
+            onClick={() => setHair(h.id)}
+            title={h.name}
             style={{
-              width: 22,
-              height: 22,
-              border: eye === eyeKey ? '3px solid var(--ink)' : '3px solid transparent',
-              background: EYE_COLORS[eyeKey],
+              width: 44,
+              height: 44,
+              border: hair === h.id ? '3px solid var(--ink)' : '3px solid transparent',
+              background: 'var(--paper-2)',
               cursor: 'pointer',
               boxShadow: '0 0 0 2px var(--ink)',
               padding: 0,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-          />
+          >
+            <img
+              src={h.thumb}
+              alt={h.name}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
+            />
+          </button>
         ))}
       </div>
     </div>
@@ -249,8 +297,8 @@ const SlotCell = ({ slot, active, equippedArt, onClick }) => (
   </div>
 );
 
-const AVATAR_SOURCE_WIDTH = 428;
-const AVATAR_SOURCE_HEIGHT = 583;
+const AVATAR_SOURCE_WIDTH = 1276;
+const AVATAR_SOURCE_HEIGHT = 1359;
 const LEFT_EYE_IRIS = [
   '.....I...............',
   '.....III.............',
@@ -326,38 +374,64 @@ const RIGHT_EYE_IRIS = [
   '.I..I...III..........',
 ];
 
-const AvatarImageWithEyeOverlay = ({ eye = 'brown', width = 220 }) => {
+const HAIR_SOURCE_WIDTH = 1216;
+const HAIR_SOURCE_HEIGHT = 1024;
+const CANVAS_TOP_PADDING = 200;
+
+const AvatarImageWithEyeOverlay = ({ eye = 'brown', hair = null, width = 220 }) => {
   const canvasRef = React.useRef(null);
   const irisColor = EYE_COLORS[eye] || EYE_COLORS.brown;
   const scale = width / AVATAR_SOURCE_WIDTH;
+  const hairStyle = hair ? HAIRSTYLES.find(h => h.id === hair) : null;
 
-  React.useEffect(() => {
+  const redraw = React.useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const img = new Image();
 
+    const drawHairOnTop = () => {
+      if (!hairStyle) return;
+      const hairImg = new Image();
+      hairImg.onload = () => {
+        const drawW = hairStyle.drawW || 950;
+        const drawH = HAIR_SOURCE_HEIGHT * (drawW / HAIR_SOURCE_WIDTH);
+        const x = (AVATAR_SOURCE_WIDTH - drawW) / 2 - 10 + (hairStyle.offsetX || 0);
+        const y = CANVAS_TOP_PADDING - 60 + (hairStyle.offsetY || 0);
+        ctx.drawImage(hairImg, x, y, drawW, drawH);
+      };
+      hairImg.src = hairStyle.src;
+    };
+
+    const img = new Image();
     img.onload = () => {
       canvas.width = AVATAR_SOURCE_WIDTH;
-      canvas.height = AVATAR_SOURCE_HEIGHT;
+      canvas.height = AVATAR_SOURCE_HEIGHT + CANVAS_TOP_PADDING;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+      ctx.drawImage(img, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
 
       if (eye !== 'brown') {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        applyEyeMask(imageData.data, LEFT_EYE_IRIS, 166, 228, irisColor, canvas.width);
-        applyEyeMask(imageData.data, RIGHT_EYE_IRIS, 243, 228, irisColor, canvas.width);
+        const leftRegion  = { x1: 410, y1: 370 + CANVAS_TOP_PADDING, x2: 560, y2: 510 + CANVAS_TOP_PADDING };
+        const rightRegion = { x1: 720, y1: 370 + CANVAS_TOP_PADDING, x2: 905, y2: 510 + CANVAS_TOP_PADDING };
+        if (eye === 'hetero') {
+          applyEyeColorByRegion(imageData.data, canvas.width, [leftRegion],  '#833303');
+          applyEyeColorByRegion(imageData.data, canvas.width, [rightRegion], '#333CE0');
+        } else if (eye === 'gradient') {
+          applyEyeGradientByRegion(imageData.data, canvas.width, [leftRegion, rightRegion], '#F85646', '#DCC7C7');
+        } else {
+          applyEyeColorByRegion(imageData.data, canvas.width, [leftRegion, rightRegion], irisColor);
+        }
         ctx.putImageData(imageData, 0, 0);
       }
-    };
 
-    img.src = 'avatar.png?v=6';
-
-    return () => {
-      img.onload = null;
+      drawHairOnTop();
     };
-  }, [eye, irisColor]);
+    img.src = 'avatar.png?v=7';
+  }, [eye, irisColor, hairStyle]);
+
+  React.useEffect(() => {
+    redraw();
+  }, [redraw]);
 
   return (
     <canvas
@@ -367,26 +441,62 @@ const AvatarImageWithEyeOverlay = ({ eye = 'brown', width = 220 }) => {
       style={{
         display: 'block',
         width,
-        height: AVATAR_SOURCE_HEIGHT * scale,
+        height: (AVATAR_SOURCE_HEIGHT + CANVAS_TOP_PADDING) * scale,
         imageRendering: 'pixelated',
       }}
     />
   );
 };
 
-const applyEyeMask = (data, shape, offsetX, offsetY, color, canvasWidth) => {
+const applyEyeColorByRegion = (data, canvasWidth, regions, color) => {
   const rgb = hexToRgb(color);
   if (!rgb) return;
+  for (const { x1, y1, x2, y2 } of regions) {
+    for (let y = y1; y <= y2; y++) {
+      for (let x = x1; x <= x2; x++) {
+        const idx = (y * canvasWidth + x) * 4;
+        const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+        if (a < 50) continue;
+        // Only target pixels close to the base iris color #773604 (119,54,4)
+        const dr = r - 119, dg = g - 54, db = b - 4;
+        const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+        if (dist > 55) continue;
+        // Preserve relative brightness within the iris (base lum ~75)
+        const pixelLum = 0.299 * r + 0.587 * g + 0.114 * b;
+        const scale = Math.min(1.5, pixelLum / 75);
+        data[idx]     = Math.min(255, Math.round(rgb.r * scale));
+        data[idx + 1] = Math.min(255, Math.round(rgb.g * scale));
+        data[idx + 2] = Math.min(255, Math.round(rgb.b * scale));
+      }
+    }
+  }
+};
 
-  for (let row = 0; row < shape.length; row++) {
-    for (let col = 0; col < shape[row].length; col++) {
-      if (shape[row][col] !== 'I') continue;
-      const x = offsetX + col;
-      const y = offsetY + row;
-      const idx = (y * canvasWidth + x) * 4;
-      data[idx] = rgb.r;
-      data[idx + 1] = rgb.g;
-      data[idx + 2] = rgb.b;
+const applyEyeGradientByRegion = (data, canvasWidth, regions, colorA, colorB) => {
+  const rgbA = hexToRgb(colorA);
+  const rgbB = hexToRgb(colorB);
+  if (!rgbA || !rgbB) return;
+  for (const { x1, y1, x2, y2 } of regions) {
+    const spanX = x2 - x1 || 1;
+    const spanY = y2 - y1 || 1;
+    for (let y = y1; y <= y2; y++) {
+      for (let x = x1; x <= x2; x++) {
+        const idx = (y * canvasWidth + x) * 4;
+        const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+        if (a < 50) continue;
+        const dr = r - 119, dg = g - 54, db = b - 4;
+        if (Math.sqrt(dr*dr + dg*dg + db*db) > 55) continue;
+        // Diagonal gradient t: 0 = top-left (colorA), 1 = bottom-right (colorB)
+        const t = ((x - x1) / spanX + (y - y1) / spanY) / 2;
+        const gr = Math.round(rgbA.r + (rgbB.r - rgbA.r) * t);
+        const gg = Math.round(rgbA.g + (rgbB.g - rgbA.g) * t);
+        const gb = Math.round(rgbA.b + (rgbB.b - rgbA.b) * t);
+        const pixelLum = 0.299 * r + 0.587 * g + 0.114 * b;
+        const scale = Math.min(1.5, pixelLum / 75);
+        data[idx]     = Math.min(255, Math.round(gr * scale));
+        data[idx + 1] = Math.min(255, Math.round(gg * scale));
+        data[idx + 2] = Math.min(255, Math.round(gb * scale));
+      }
     }
   }
 };

@@ -112,7 +112,8 @@ const EYE_COLORS = {
   pink:     '#FEA0CD',
   lilac:    '#F1CFFF',
   amber:    '#FBC01F',
-  aqua:     '#67FFF0',
+  gradient: 'gradient',
+  hetero:   'hetero',
 };
 
 const buildChibiPalette = (skinKey, eyeKey, hairKey = 'brown') => {
