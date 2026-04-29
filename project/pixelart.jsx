@@ -98,7 +98,8 @@ const SKIN_TONES = {
   light:     { mid: '#FCDEBD', shadow: '#E9C49B' },
   warm:      { mid: '#F9CD9C', shadow: '#E0AE76' },
   tan:       { mid: '#D4AD81', shadow: '#A88254' },
-  deep:      { mid: '#6E4A22', shadow: '#4A2F12' },
+  deep:      { mid: '#6E4A22', shadow: '#4A2F12', border: '#1E1205' },
+  rich:      { mid: '#472F14', shadow: '#2F1D0B', border: '#1E1205' },
 };
 
 const EYE_COLORS = {
@@ -406,7 +407,41 @@ const CLOTHING = {
   },
 };
 
+const IMAGE_GEAR_LOOKUP = window.IMAGE_GEAR_MAP || {};
+
 const ClothingArt = ({ id, scale = 6, style = {} }) => {
+  const imageGear = IMAGE_GEAR_LOOKUP[id];
+  if (imageGear) {
+    const frameSize = 24 * scale;
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          width: frameSize,
+          height: frameSize,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          ...style,
+        }}
+      >
+        <img
+          src={imageGear.inventorySrc}
+          alt={imageGear.name}
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            imageRendering: 'pixelated',
+            display: 'block',
+          }}
+        />
+      </div>
+    );
+  }
+
   const item = CLOTHING[id];
   if (!item) return null;
   return <PixelArt data={item.data} palette={item.palette} scale={scale} style={style} />;

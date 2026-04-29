@@ -35,7 +35,7 @@ const NFTCard = ({ nft, onClick, owned }) => {
 
 /* ============= MAIN PAGE ============= */
 const MainPage = ({ goto }) => {
-  const featured = NFT_LIBRARY.filter(n => ['NFT-0001', 'NFT-0005', 'NFT-0008', 'NFT-0010'].includes(n.id));
+  const featured = NFT_LIBRARY.filter(n => ['NFT-HEAD-0001', 'NFT-OUTFIT-0003', 'NFT-0008', 'NFT-ITEM-0001'].includes(n.id));
 
   return (
     <div>
