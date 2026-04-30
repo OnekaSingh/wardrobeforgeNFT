@@ -96,8 +96,8 @@ const MainPage = ({ goto, currentUser }) => {
               <span style={{ color: 'var(--coral)', fontSize: 44 }}>Wardrobe.</span>
             </h1>
             <p style={{ fontSize: 22, marginBottom: 26, maxWidth: 520 }}>
-              WardrobeForge mints NFT pieces for own VTO avatars. Claim ponts, roll for pieces,
-              forge your wardrobe and build avatars.
+              WardrobeForge drops collectible clothing NFTs for your avatar. Buy crates, unlock new pieces,
+              forge your wardrobe, and build standout looks.
             </p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
               <button
@@ -167,9 +167,9 @@ const MainPage = ({ goto, currentUser }) => {
         </div>
         <div className="grid cols-4">
           <Step n="01" title="SIGN UP" body="Create an account and get started with NFTs." />
-          <Step n="02" title="ROLL THE DICE" body="Roll for different NFTs with your VTO points. New accounts get free points, and come back to claim your free points daily!" />
-          <Step n="03" title="UNLOCK A RELIC" body="Each NFT rolls a unique virtual relic — staff, helm, cloak, orb — with its own NFT ID. Roll a dupe? No problem. Dupes increase your star power and overall avatar XP. Top up and recieve a free, random NFT gift with your purchase." />
-          <Step n="04" title="EARN + EQUIP" body="Create avatars with your relic, and post your creations for a chance to win free VTO points if you make the leaderboard." />
+          <Step n="02" title="PICK YOUR CRATES" body="Choose how many crates you want in a single checkout. Pricing starts at $2.99 for one crate and scales by quantity." />
+          <Step n="03" title="UNLOCK A RELIC" body="Each crate can reveal a new wearable with its own NFT ID. Roll a dupe? No problem. Dupes still power up your wardrobe and overall avatar XP." />
+          <Step n="04" title="EQUIP + SHOW OFF" body="Build avatars with your relics, save your best looks, and keep growing your collection across future drops." />
         </div>
       </section>
 
@@ -220,15 +220,15 @@ const MainPage = ({ goto, currentUser }) => {
                 </p>
                 <p style={{ fontSize: 20, opacity: .8 }}>
                   Collect, equip, level up, and show off your best looks. The fun comes from the hunt,
-                  the rarity, the dupes turning into progression, and the chance to earn more VTO by creating.
+                  the rarity, the dupes turning into progression, and the thrill of building a stronger wardrobe over time.
                 </p>
               </div>
             </div>
             <ul className="why-wardrobe-points" style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <BulletPoint icon="?" t="ROLL + COLLECT" b="Spend VTO points to roll for new NFTs and expand your digital wardrobe." />
+              <BulletPoint icon="?" t="ROLL + COLLECT" b="Buy crates directly and unlock new NFTs to expand your digital wardrobe." />
               <BulletPoint icon="?" t="BUILD YOUR AVATAR" b="Equip your relics, mix pieces together, and create standout looks in the avatar lab." />
               <BulletPoint icon="?" t="DUPES = PROGRESS" b="Duplicate rolls are still valuable, boosting star power and helping grow your avatar XP." />
-              <BulletPoint icon="?" t="EARN MORE VTO" b="Come back daily, climb the leaderboard, and top up for more chances to unlock rare pieces." />
+              <BulletPoint icon="?" t="BUY YOUR WAY" b="Slide from one crate to a larger bundle and check out the exact quantity you want." />
             </ul>
           </div>
         </div>

@@ -1,0 +1,69 @@
+{
+  "baseMetadataURI": "ipfs://wardrobeforge-metadata/",
+  "payerAllowlistEnabled": true,
+  "approvedPayers": [
+    "0x0000000000000000000000000000000000000001"
+  ],
+  "itemTokens": [
+    100001,
+    100002,
+    100003,
+    200001,
+    200002,
+    300001,
+    300002,
+    400001,
+    400002
+  ],
+  "crates": [
+    {
+      "crateId": 1,
+      "priceWei": "1000000000000000",
+      "maxQuantityPerTx": 10,
+      "active": true,
+      "rewards": [
+        { "tokenId": 100001, "weight": 40, "active": true },
+        { "tokenId": 100002, "weight": 25, "active": true },
+        { "tokenId": 200001, "weight": 20, "active": true },
+        { "tokenId": 400001, "weight": 15, "active": true }
+      ]
+    },
+    {
+      "crateId": 2,
+      "priceWei": "1000000000000000",
+      "maxQuantityPerTx": 10,
+      "active": true,
+      "rewards": [
+        { "tokenId": 100003, "weight": 25, "active": true },
+        { "tokenId": 200002, "weight": 20, "active": true },
+        { "tokenId": 300001, "weight": 35, "active": true },
+        { "tokenId": 400002, "weight": 20, "active": true }
+      ]
+    },
+    {
+      "crateId": 3,
+      "priceWei": "1000000000000000",
+      "maxQuantityPerTx": 10,
+      "active": true,
+      "rewards": [
+        { "tokenId": 100001, "weight": 20, "active": true },
+        { "tokenId": 200001, "weight": 35, "active": true },
+        { "tokenId": 300002, "weight": 25, "active": true },
+        { "tokenId": 400002, "weight": 20, "active": true }
+      ]
+    },
+    {
+      "crateId": 4,
+      "priceWei": "1000000000000000",
+      "maxQuantityPerTx": 10,
+      "active": true,
+      "rewards": [
+        { "tokenId": 100003, "weight": 20, "active": true },
+        { "tokenId": 200002, "weight": 20, "active": true },
+        { "tokenId": 300001, "weight": 30, "active": true },
+        { "tokenId": 300002, "weight": 15, "active": true },
+        { "tokenId": 400001, "weight": 15, "active": true }
+      ]
+    }
+  ]
+}

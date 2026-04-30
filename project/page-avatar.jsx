@@ -136,7 +136,7 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
   const defaultItem = null;
   const validArtIds = React.useMemo(() => new Set(NFT_LIBRARY.map(item => item.art)), []);
   const accountSnapshot = React.useMemo(
-    () => window.WardrobeForgeAuth?.getAccountSnapshot?.(currentUser?.id) || { balance: 300, xp: 0, ownedArtIds: ['base-outfit', 'base-shoes'], itemStars: { 'base-outfit': 1, 'base-shoes': 1 } },
+    () => window.WardrobeForgeAuth?.getAccountSnapshot?.(currentUser?.id) || { xp: 0, ownedArtIds: ['base-outfit', 'base-shoes'], itemStars: { 'base-outfit': 1, 'base-shoes': 1 } },
     [currentUser],
   );
   const ownedArtIds = React.useMemo(() => new Set(currentUser ? accountSnapshot.ownedArtIds : NFT_LIBRARY.filter(n => n.owned).map(n => n.art)), [accountSnapshot.ownedArtIds, currentUser]);
@@ -179,8 +179,6 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
       };
       return (priority[a.art] || 0) - (priority[b.art] || 0);
     });
-
-  const totalPoints = accountSnapshot.balance;
 
   const equip = (artId) => setEquipped(e => ({ ...e, [activeSlot]: e[activeSlot] === artId ? null : artId }));
 
@@ -305,17 +303,7 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
     <div className="page">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <h1 className="pixel" style={{ fontSize: 26 }}>MY AVATAR</h1>
-        <span className="mono" style={{ fontSize: 20, opacity: .6 }}>// dress your chibi. earn your points.</span>
-        {currentUser && (
-          <div className="vto-balance-actions">
-            <span className="vto-balance-badge">
-              <span className="chip">VTO POINTS</span>
-              <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
-              <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{totalPoints.toLocaleString()}</span>
-            </span>
-            <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
-          </div>
-        )}
+        <span className="mono" style={{ fontSize: 20, opacity: .6 }}>// dress your chibi. grow your wardrobe.</span>
       </div>
 
       <div className="avatar-page-grid">

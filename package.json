@@ -1,13 +1,28 @@
 {
+  "type": "module",
   "scripts": {
-    "optimize-images": "node scripts/optimize-images.cjs"
+    "optimize-images": "node scripts/optimize-images.cjs",
+    "compile:contracts": "hardhat compile",
+    "test:contracts": "hardhat test",
+    "deploy:contracts:local": "hardhat ignition deploy ignition/modules/WardrobeForgeCrates1155.js --network localhost",
+    "deploy:contracts:polygon": "hardhat ignition deploy ignition/modules/WardrobeForgeCrates1155.js --network polygon",
+    "seed:contracts": "hardhat run scripts/seed-wardrobeforge-crates.mjs",
+    "seed:contracts:local": "hardhat run --network localhost scripts/seed-wardrobeforge-crates.mjs",
+    "seed:contracts:polygon": "hardhat run --network polygon scripts/seed-wardrobeforge-crates.mjs"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
     "@playwright/test": "^1.59.1",
     "pngjs": "^7.0.0",
     "replicate": "^1.4.0"
   },
   "devDependencies": {
-    "sharp": "^0.34.5"
+    "@nomicfoundation/hardhat-node-test-runner": "^3.0.14",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.4",
+    "@types/node": "^25.6.0",
+    "hardhat": "^3.4.3",
+    "sharp": "^0.34.5",
+    "typescript": "^6.0.3",
+    "viem": "^2.48.4"
   }
 }

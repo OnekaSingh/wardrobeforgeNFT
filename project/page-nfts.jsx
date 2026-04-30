@@ -3,11 +3,12 @@
 const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const baseCatalog = window.BROWSABLE_NFT_LIBRARY || NFT_LIBRARY;
   const crates = window.CRATE_LIBRARY || [];
+  const formatUsd = (amount) => `$${amount.toFixed(2)}`;
   const accountSnapshot = React.useMemo(
-    () => window.WardrobeForgeAuth?.getAccountSnapshot?.(currentUser?.id) || { balance: 300, xp: 0, ownedArtIds: ['base-outfit', 'base-shoes'], itemStars: { 'base-outfit': 1, 'base-shoes': 1 } },
+    () => window.WardrobeForgeAuth?.getAccountSnapshot?.(currentUser?.id) || { xp: 0, ownedArtIds: ['base-outfit', 'base-shoes'], itemStars: { 'base-outfit': 1, 'base-shoes': 1 } },
     [currentUser],
   );
-  const ownedArtIds = React.useMemo(() => new Set(accountSnapshot.ownedArtIds), [accountSnapshot.ownedArtIds]);
+  const ownedArtIds = React.useMemo(() => new Set(accountSnapshot.ownedArtIds || []), [accountSnapshot.ownedArtIds]);
   const catalog = React.useMemo(() => (
     baseCatalog.map((item) => ({
       ...item,
@@ -21,10 +22,9 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const [rarity, setRarity] = useState('All');
   const [crateModalState, setCrateModalState] = useState({
     open: false,
-    status: 'preview',
     crateId: null,
-    rolledItemId: null,
-    authenticityCode: '',
+    quantity: 1,
+    totalUsd: 0,
     message: '',
   });
   const crateSectionRef = React.useRef(null);
@@ -32,7 +32,9 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const selected = catalog.find(n => n.id === selectedId) || catalog[0];
   const selectedCrate = crates.find((crate) => crate.id === selectedCrateId) || crates[0];
   const modalCrate = crates.find((crate) => crate.id === crateModalState.crateId) || selectedCrate;
-  const modalRolledItem = modalCrate?.contents.find((item) => item.id === crateModalState.rolledItemId) || null;
+  const selectedCrateUnitPrice = Number(selectedCrate?.priceUsd || 0);
+  const modalCrateUnitPrice = Number(modalCrate?.priceUsd || 0);
+  const modalCrateTotal = Number((modalCrateUnitPrice * crateModalState.quantity).toFixed(2));
   const getCrateRaritySummary = (crate) => ([
     { label: 'COMMON', value: crate?.rarityCounts?.Common || 0, className: 'pink' },
     { label: 'RARE', value: crate?.rarityCounts?.Rare || 0, className: 'sky' },
@@ -68,13 +70,6 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     if (rarity !== 'All' && n.rarity !== rarity) return false;
     return true;
   });
-
-  const getRarityWeight = (rarityName) => ({
-    Common: 8,
-    Rare: 4,
-    Epic: 2,
-    Legendary: 1,
-  }[rarityName] || 1);
 
   const getItemXpBonus = (item) => ({
     Common: 20,
@@ -114,77 +109,48 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     ];
   }, [catalog]);
 
-  const rollCrateItem = (crate) => {
-    const availableItems = crate.contents.filter((item) => !ownedArtIds.has(item.art));
-    const source = availableItems.length ? availableItems : crate.contents;
-    const weighted = source.flatMap((item) => Array.from({ length: getRarityWeight(item.rarity) }, () => item));
-    return weighted[Math.floor(Math.random() * weighted.length)] || source[0] || null;
-  };
-
   const closeCrateModal = () => {
     setCrateModalState({
       open: false,
-      status: 'preview',
       crateId: null,
-      rolledItemId: null,
-      authenticityCode: '',
+      quantity: 1,
+      totalUsd: 0,
       message: '',
     });
   };
 
-  const triggerCrateReveal = () => {
-    setCrateModalState((current) => ({ ...current, status: 'shaking' }));
-    window.setTimeout(() => {
-      setCrateModalState((current) => ({ ...current, status: 'revealed' }));
-    }, 950);
-  };
-
-  const handleOpenCrate = async (crate) => {
+  const handleOpenCrate = (crate) => {
     if (!currentUser) {
       if (openAuthModal) openAuthModal();
       return;
     }
 
-    if (accountSnapshot.balance < crate.priceVto) {
-      setCrateModalState({
-        open: true,
-        status: 'insufficient',
-        crateId: crate.id,
-        rolledItemId: null,
-        authenticityCode: '',
-        message: 'You need 100 VTO to open this crate.',
-      });
-      return;
-    }
+    setCrateModalState({
+      open: true,
+      crateId: crate.id,
+      quantity: 1,
+      totalUsd: Number((crate.priceUsd || 0).toFixed(2)),
+      message: 'Checkout is now quantity-based: one payment covers the exact number of crate unboxes you select.',
+    });
+  };
 
-    const rolledItem = rollCrateItem(crate);
-    if (!rolledItem) return;
+  const handleModalQuantityChange = (nextQuantity) => {
+    setCrateModalState((current) => {
+      const quantity = Number(nextQuantity);
+      const unitPrice = Number((modalCrate?.priceUsd || selectedCrate?.priceUsd || 0));
+      return {
+        ...current,
+        quantity,
+        totalUsd: Number((unitPrice * quantity).toFixed(2)),
+      };
+    });
+  };
 
-    try {
-      const grantResult = await window.WardrobeForgeAuth?.spendVtoAndGrantItem?.({
-        userId: currentUser.id,
-        cost: crate.priceVto,
-        artId: rolledItem.art,
-        xpAmount: getItemXpBonus(rolledItem),
-      });
-      setCrateModalState({
-        open: true,
-        status: 'preview',
-        crateId: crate.id,
-        rolledItemId: rolledItem.id,
-        authenticityCode: grantResult?.grantedAuthenticityCode || grantResult?.authenticityCodes?.[rolledItem.art] || '',
-        message: '',
-      });
-    } catch (error) {
-      setCrateModalState({
-        open: true,
-        status: 'insufficient',
-        crateId: crate.id,
-        rolledItemId: null,
-        authenticityCode: '',
-        message: error.message || 'You need more VTO.',
-      });
-    }
+  const handleProceedToCheckout = () => {
+    setCrateModalState((current) => ({
+      ...current,
+      message: `Next step: redirect signed-in users into checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}.`,
+    }));
   };
 
   return (
@@ -192,23 +158,13 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <h1 className="pixel" style={{ fontSize: 26 }}>CLOTHING NFTS</h1>
         <span className="mono" style={{ fontSize: 20, opacity: .6 }}>// the relics you might roll</span>
-        {currentUser && (
-          <div className="vto-balance-actions">
-            <span className="vto-balance-badge">
-              <span className="chip">VTO BALANCE</span>
-              <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
-              <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{accountSnapshot.balance.toLocaleString()}</span>
-            </span>
-            <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
-          </div>
-        )}
       </div>
 
       {selectedCrate && (
         <section ref={crateSectionRef} style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
             <div className="pixel" style={{ fontSize: 14 }}>MYSTERY CRATES</div>
-            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// each one costs 100 VTO and carries a balanced rarity spread</span>
+            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// direct purchase crates starting at {formatUsd(selectedCrateUnitPrice)} each</span>
           </div>
 
           <div className="grid cols-4 crate-grid">
@@ -222,7 +178,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <img className="crate-image" src="assets/crates/pixel-crate.webp" alt={crate.name} loading="lazy" decoding="async" />
                 </div>
                 <div className="pixel" style={{ fontSize: 11, marginBottom: 6 }}>{crate.name}</div>
-                <div className="mono" style={{ fontSize: 18, opacity: .72, marginBottom: 10 }}>{crate.priceVto} VTO</div>
+                <div className="mono" style={{ fontSize: 18, opacity: .72, marginBottom: 10 }}>FROM {formatUsd(crate.priceUsd || 0)}</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {getCrateRaritySummary(crate).map((entry) => (
                     <span key={`${crate.id}-${entry.label}`} className={`chip ${entry.className}`}>{entry.value} {entry.label}</span>
@@ -239,10 +195,10 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <img className="crate-image crate-image-large float" src="assets/crates/pixel-crate.webp" alt={selectedCrate.name} decoding="async" />
                 </div>
                 <div className="crate-detail-open-wrap">
-                  <button className="pxl-btn crate-open-btn crate-open-btn-hero" onClick={() => handleOpenCrate(selectedCrate)}>OPEN FOR 100 VTO</button>
+                  <button className="pxl-btn crate-open-btn crate-open-btn-hero" onClick={() => handleOpenCrate(selectedCrate)}>BUY CRATES</button>
                 </div>
                 <div style={{ position: 'absolute', top: 16, left: 16 }}>
-                  <span className="chip coral">{selectedCrate.priceVto} VTO</span>
+                  <span className="chip coral">FROM {formatUsd(selectedCrateUnitPrice)}</span>
                 </div>
                 <div style={{ position: 'absolute', bottom: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between' }} className="pixel">
                   <span style={{ fontSize: 11 }}>{selectedCrate.id.toUpperCase()}</span>
@@ -342,7 +298,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
               <div style={{ display: 'grid', gridTemplateColumns: selected.owned ? '1fr 1fr' : '1fr', gap: 14, alignItems: 'stretch' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div className="pixel" style={{ fontSize: 10, color: 'var(--pink-neon)' }}>VTO BONUS</div>
+                    <div className="pixel" style={{ fontSize: 10, color: 'var(--pink-neon)' }}>WARDROBE XP</div>
                     <div className="pixel" style={{ fontSize: 18, color: 'var(--coral-soft)' }}>+{selectedTotalXp} XP</div>
                   </div>
                   <div className="bar"><i style={{ width: `${Math.min(100, (selectedTotalXp / 420) * 100)}%` }} /></div>
@@ -404,64 +360,56 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
 
       {crateModalState.open && modalCrate && (
         <div className="crate-open-backdrop" onClick={closeCrateModal}>
-          <div className={`crate-open-shell crate-open-${crateModalState.status}`} onClick={(event) => event.stopPropagation()}>
-            {crateModalState.status === 'insufficient' ? (
-              <div className="pxl-box dark crate-open-panel">
-                <div className="chip coral" style={{ marginBottom: 18 }}>INSUFFICIENT FUNDS</div>
-                <div className="pixel" style={{ fontSize: 20, marginBottom: 12 }}>NOT ENOUGH VTO</div>
-                <p className="mono" style={{ fontSize: 22, lineHeight: 1.45, marginBottom: 18 }}>{crateModalState.message}</p>
-                <button className="pxl-btn" onClick={closeCrateModal}>OK</button>
+          <div className="crate-open-shell" onClick={(event) => event.stopPropagation()}>
+            <div className={`pxl-box no-drop crate-open-panel crate-open-panel-${modalCrate.tone}`}>
+              <div className="crate-open-meta">
+                <span className="chip coral">{crateModalState.quantity} × {formatUsd(modalCrateUnitPrice)}</span>
+                <button className="auth-modal-close crate-modal-close" onClick={closeCrateModal} aria-label="Close crate checkout">X</button>
               </div>
-            ) : (
-              <div className={`pxl-box no-drop crate-open-panel crate-open-panel-${modalCrate.tone} ${crateModalState.status === 'revealed' ? 'crate-open-panel-revealed' : ''}`}>
-                <div className="crate-open-meta">
-                  <span className="chip coral">{modalCrate.priceVto} VTO</span>
-                  <button className="auth-modal-close crate-modal-close" onClick={closeCrateModal} aria-label="Close crate opening">X</button>
+              <div className="crate-open-stage float">
+                <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
+              </div>
+              <div className="pixel crate-open-title">CHECKOUT PREVIEW</div>
+              <div className="mono crate-open-subtitle">{crateModalState.message}</div>
+              <div className="crate-reveal-card">
+                <div className="chip coral" style={{ marginBottom: 14 }}>ORDER SUMMARY</div>
+                <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
+                <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
+                <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 6 }}>CRATE QUANTITY</div>
+                      <div className="mono" style={{ fontSize: 20 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 6 }}>TOTAL</div>
+                      <div className="pixel" style={{ fontSize: 18 }}>{formatUsd(modalCrateTotal)}</div>
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={crateModalState.quantity}
+                    onChange={(event) => handleModalQuantityChange(event.target.value)}
+                    style={{ width: '100%', accentColor: 'var(--coral)' }}
+                    aria-label="Select crate quantity"
+                  />
                 </div>
-
-                {crateModalState.status !== 'revealed' && (
-                  <div className={`crate-open-stage ${crateModalState.status === 'shaking' ? 'shake' : 'float'}`} onClick={crateModalState.status === 'preview' ? triggerCrateReveal : undefined}>
-                    <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
-                  </div>
-                )}
-
-                {crateModalState.status === 'preview' && (
-                  <>
-                    <div className="pixel crate-open-title">{modalCrate.id.toUpperCase()}</div>
-                    <div className="mono crate-open-subtitle">Click the crate to crack it open.</div>
-                  </>
-                )}
-
-                {crateModalState.status === 'shaking' && (
-                  <>
-                    <div className="pixel crate-open-title">OPENING...</div>
-                    <div className="mono crate-open-subtitle">The forge is picking your drop.</div>
-                  </>
-                )}
-
-                {crateModalState.status === 'revealed' && modalRolledItem && (
-                  <div className="crate-reveal-card">
-                    <div className="chip coral" style={{ marginBottom: 14 }}>YOU ROLLED</div>
-                    <div className="crate-reveal-art">
-                      <NFTArt nft={modalRolledItem} scale={7} />
-                    </div>
-                    <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalRolledItem.name}</div>
-                    <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{modalRolledItem.slot.toUpperCase()}</div>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
-                      <span className={`chip ${RARITY_COLOR[modalRolledItem.rarity]}`}>{modalRolledItem.rarity.toUpperCase()}</span>
-                      <span className="chip">{modalRolledItem.serial}</span>
-                    </div>
-                    {crateModalState.authenticityCode && (
-                      <div className="crate-auth-code">
-                        <div className="pixel crate-auth-code-label">AUTHENTICITY ID</div>
-                        <div className="mono crate-auth-code-value">{crateModalState.authenticityCode}</div>
-                      </div>
-                    )}
-                    <button className="pxl-btn" onClick={closeCrateModal}>CLAIM</button>
-                  </div>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
+                  <span className="chip">{formatUsd(modalCrateUnitPrice)} each</span>
+                  <span className="chip coral">TOTAL {formatUsd(modalCrateTotal)}</span>
+                </div>
+                <p className="mono" style={{ fontSize: 18, lineHeight: 1.45, marginBottom: 18 }}>
+                  Choose the number of crates here, then continue into checkout with the exact quantity and total locked in.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <button className="pxl-btn ghost" onClick={closeCrateModal}>CLOSE</button>
+                  <button className="pxl-btn" onClick={handleProceedToCheckout}>BUY {crateModalState.quantity} FOR {formatUsd(modalCrateTotal)}</button>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
