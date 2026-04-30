@@ -251,14 +251,16 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <h1 className="pixel" style={{ fontSize: 26 }}>MY AVATAR</h1>
         <span className="mono" style={{ fontSize: 20, opacity: .6 }}>// dress your chibi. earn your points.</span>
-        <div className="vto-balance-actions">
-          <span className="vto-balance-badge">
-            <span className="chip">VTO POINTS</span>
-            <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
-            <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{totalPoints.toLocaleString()}</span>
-          </span>
-          <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
-        </div>
+        {currentUser && (
+          <div className="vto-balance-actions">
+            <span className="vto-balance-badge">
+              <span className="chip">VTO POINTS</span>
+              <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
+              <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{totalPoints.toLocaleString()}</span>
+            </span>
+            <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
+          </div>
+        )}
       </div>
 
       <div className="avatar-page-grid">

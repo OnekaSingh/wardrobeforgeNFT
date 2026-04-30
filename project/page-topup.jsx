@@ -205,11 +205,13 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
           <span className="mono" style={{ fontSize: 20, opacity: .65 }}>// restock your wallet for more crate rolls</span>
         </div>
 
-        <div className="topup-balance-row">
-          <span className="chip">CURRENT BALANCE</span>
-          <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
-          <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{accountSnapshot.balance.toLocaleString()}</span>
-        </div>
+        {currentUser && (
+          <div className="topup-balance-row">
+            <span className="chip">CURRENT BALANCE</span>
+            <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
+            <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{accountSnapshot.balance.toLocaleString()}</span>
+          </div>
+        )}
 
         <div className="topup-grid">
           {TOP_UP_PACKAGES.map((pack) => (
