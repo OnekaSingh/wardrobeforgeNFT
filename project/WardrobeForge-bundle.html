@@ -46,6 +46,13 @@ html,body{
   image-rendering: pixelated;
   -webkit-font-smoothing: none;
   font-smooth: never;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar{
+  display: none;
 }
 
 img{image-rendering: pixelated; image-rendering:-moz-crisp-edges;}
@@ -223,6 +230,21 @@ a{color:inherit; text-decoration:none}
 .page{
   max-width: 1240px; margin: 0 auto;
   padding: 36px 24px 80px;
+}
+
+.avatar-inventory-grid{
+  overflow-x: hidden;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.avatar-inventory-grid::-webkit-scrollbar{
+  display: none;
+}
+
+.avatar-page-grid{
+  align-items: start;
 }
 
 /* footer */
@@ -1164,7 +1186,7 @@ const AvatarPage = ({ initialEquip }) => {
             <div className="pixel" style={{ fontSize:12 }}>INVENTORY</div>
             <div className="mono" style={{ fontSize:16, opacity:.6 }}>// {activeSlot.toUpperCase()} SLOT</div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10, maxHeight:380, overflowY:'auto', paddingRight:6 }}>
+          <div className="avatar-inventory-grid" style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10, maxHeight:292, overflowY:'auto', paddingTop:4, paddingLeft:4, paddingRight:10, paddingBottom:4 }}>
             {(activeSlot==='boots' ? bootsItems : slotItems).map(item => {
               const isEquipped = equipped[activeSlot] === item.art;
               return (
@@ -1357,11 +1379,11 @@ const PrivacyPage = () => (
       <div className="meta">EFFECTIVE: 04/12/2026 · VERSION 3.1 · WARDROBEFORGE</div>
       <hr className="pxl-hr" />
       <h2>1. INTRODUCTION</h2>
-      <p>WardrobeForge ("WardrobeForge," "we," "us," or "our") respects your privacy and is committed to protecting it through this Privacy Policy. This Policy describes the types of information we may collect from you when you visit wardrobeforge.app, our mobile applications, virtual try-on experience ("VTO Services"), and blockchain-linked digital twin services (collectively, the "Services").</p>
+      <p>WardrobeForge ("WardrobeForge," "we," "us," or "our") respects your privacy and is committed to protecting it through this Privacy Policy. This Policy describes the types of information we may collect from you when you visit wardrobeforge.app, our mobile applications, virtual try-on experience ("VTO Services"), and blockchain-linked NFT marketplace and virtual item services (collectively, the "Services").</p>
       <h2>2. INFORMATION WE COLLECT</h2>
       <h3>2.1 Information You Provide</h3>
       <ul>
-        <li>Account information (display name, email, mailing address for IRL garment fulfillment).</li>
+        <li>Account information, such as your display name, username, email address, and any profile details you choose to provide.</li>
         <li>Payment information processed by our PCI-DSS compliant payment processors.</li>
         <li>Public wallet addresses you connect for minting, transferring, or displaying NFTs.</li>
         <li>Avatar configuration data, including selected skins, equipped items, and saved looks.</li>
@@ -1369,10 +1391,10 @@ const PrivacyPage = () => (
       </ul>
       <h2>3. HOW WE USE YOUR INFORMATION</h2>
       <ul>
-        <li>To present the Services and fulfill physical garment orders.</li>
-        <li>To mint, transfer, and verify the authenticity of digital twin NFTs.</li>
+        <li>To present the Services and their contents to you and operate your account, wallet connections, and marketplace activity.</li>
+        <li>To mint, transfer, display, and verify ownership of NFTs and virtual items associated with your account or wallet.</li>
         <li>To award, calculate, and apply VTO Points (100 points per qualifying NFT mint).</li>
-        <li>To detect counterfeit goods and honor anti-counterfeit warranties.</li>
+        <li>To detect fraud, abuse, unauthorized activity, and marketplace policy violations.</li>
         <li>To improve our Services and develop new features, including AI-driven try-on rendering.</li>
       </ul>
       <h2>4. BLOCKCHAIN AND ON-CHAIN DATA</h2>
@@ -1394,20 +1416,22 @@ const TermsPage = () => (
       <div className="meta">EFFECTIVE: 04/12/2026 · VERSION 3.1 · PLEASE READ CAREFULLY</div>
       <hr className="pxl-hr" />
       <h2>1. ACCEPTANCE OF TERMS</h2>
-      <p>These Terms of Service ("Terms") form a binding agreement between you and WardrobeForge governing your access to and use of the WardrobeForge website, applications, VTO Services, and digital twin offerings. By accessing the Services, you represent that you are at least eighteen (18) years of age.</p>
+      <p>These Terms of Service ("Terms") form a binding agreement between you and WardrobeForge governing your access to and use of the WardrobeForge website, applications, VTO Services, and NFT marketplace offerings. By accessing the Services, you represent that you are at least eighteen (18) years of age.</p>
       <h2>2. THE WARDROBEFORGE PROTOCOL</h2>
-      <h3>2.1 Physical Goods and Digital Twins</h3>
-      <p>Each qualifying physical garment sold by WardrobeForge is paired with a non-fungible token ("Digital Twin" or "NFT") minted to a blockchain address you control. The Digital Twin represents (a) a proof of authenticity for the Garment, (b) a wearable virtual relic redeemable in our Services, and (c) a one-time award of one hundred (100) VTO Points.</p>
+      <h3>2.1 NFTs and Virtual Items</h3>
+      <p>WardrobeForge offers blockchain-based non-fungible tokens ("NFTs") and virtual wearable items for use within our Services. NFTs may be minted to a blockchain address you control and may represent digital collectibles, in-platform utility, avatar wearables, or a one-time award of one hundred (100) points ("VTO Points") in our virtual try-on application.</p>
       <h3>2.2 Random Allocation</h3>
       <p>The specific virtual relic granted by a Digital Twin is allocated by a verifiable randomness function. WardrobeForge makes no representation that any particular relic, rarity tier, or aesthetic outcome will be produced by a given mint.</p>
-      <h2>3. PAYMENT, FULFILLMENT AND RETURNS</h2>
+      <h2>3. PAYMENTS, DIGITAL DELIVERY, AND FINALITY</h2>
       <ul>
-        <li>All Garment prices are listed in U.S. dollars exclusive of taxes and shipping.</li>
-        <li>Garments ship within five (5) business days of order confirmation, subject to inventory.</li>
-        <li>Returns are accepted within fourteen (14) days of delivery for unworn items in original packaging. <b>The associated Digital Twin NFT is non-refundable and shall be returned to the WardrobeForge treasury upon Garment refund.</b></li>
+        <li>Prices for NFTs, virtual items, and related Services may be listed in U.S. dollars, cryptocurrency, or both, exclusive of applicable taxes and blockchain network fees.</li>
+        <li>Digital delivery is completed when the applicable NFT or virtual item is made available in your WardrobeForge account, connected wallet, or both.</li>
+        <li>You are solely responsible for providing and maintaining an accurate wallet address and compatible wallet access. Transactions sent to an incorrect wallet address may be irreversible.</li>
+        <li>Unless otherwise required by law or expressly stated by WardrobeForge, purchases of NFTs and virtual items are final and non-refundable.</li>
+        <li>VTO Points awarded for a reversed, refunded, or disputed transaction are subject to claw-back.</li>
       </ul>
       <h2>4. INTELLECTUAL PROPERTY</h2>
-      <p>WardrobeForge retains all right, title, and interest in and to the Services. Subject to your continued ownership of the corresponding Digital Twin, WardrobeForge grants you a worldwide, non-exclusive, royalty-free license to display and use the relic artwork for personal, non-commercial purposes, and for commercial use generating less than USD $100,000 per year.</p>
+      <p>WardrobeForge retains all right, title, and interest in and to the Services. Subject to your continued ownership of the corresponding NFT, WardrobeForge grants you a worldwide, non-exclusive, royalty-free license to display and use the associated artwork for personal, non-commercial purposes, and for commercial use generating less than USD $100,000 per year.</p>
       <h2>5. GOVERNING LAW</h2>
       <p>These Terms are governed by the laws of the State of Delaware. Any dispute arising hereunder shall be resolved by binding arbitration administered by JAMS in San Francisco, California.</p>
       <h2>6. CONTACT</h2>
