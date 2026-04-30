@@ -2,13 +2,16 @@
 
 const { useState: useStateApp, useEffect: useEffectApp } = React;
 
+const getRouteFromHash = () => {
+  const rawHash = String(window.location.hash || '');
+  const normalizedHash = rawHash.replace(/^#\/?/, '');
+  return normalizedHash || 'main';
+};
+
 const App = () => {
   const authApi = window.WardrobeForgeAuth;
   const AuthModalComponent = window.AuthModal;
-  const [page, setPage] = useStateApp(() => {
-    const h = window.location.hash.replace('#', '') || 'main';
-    return h;
-  });
+  const [page, setPage] = useStateApp(() => getRouteFromHash());
   const [nftFocus, setNftFocus] = useStateApp(null);
   const [avatarEquipRequest, setAvatarEquipRequest] = useStateApp(null);
   const [currentUser, setCurrentUser] = useStateApp(() => authApi?.getCurrentUser?.() || null);
@@ -29,7 +32,7 @@ const App = () => {
     setPage(p);
     if (focus) setNftFocus(focus);
     if (equipRequest) setAvatarEquipRequest(equipRequest);
-    window.location.hash = p;
+    window.location.hash = `/${p}`;
     window.scrollTo(0, 0);
   };
 
@@ -37,7 +40,7 @@ const App = () => {
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
   useEffectApp(() => {
-    const onHash = () => setPage(window.location.hash.replace('#', '') || 'main');
+    const onHash = () => setPage(getRouteFromHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);

@@ -1099,7 +1099,6 @@ window.WardrobeForgeAuth = {
 
 upsertLocalAccountState(getCurrentUser());
 applyOneTimeVtoGrant();
-applyOneTimeTestVtoBonus();
 refreshSession().catch(() => {
   // Keep the current cached session visible if the backend is temporarily unavailable.
 });

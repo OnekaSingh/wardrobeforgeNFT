@@ -186,15 +186,15 @@ const MainPage = ({ goto, currentUser }) => {
 
       {/* WHY IT WORKS */}
       <section className="page" style={{ paddingTop: 0 }}>
-        <div className="pxl-box" style={{ background: 'var(--ink)', color: '#fff', padding: 36, position: 'relative', overflow: 'hidden' }}>
+        <div className="pxl-box why-wardrobe-card" style={{ background: 'var(--ink)', color: '#fff', padding: 36, position: 'relative', overflow: 'hidden' }}>
           {/* decorative pixel hearts */}
           <PixelHeart size={5} color="#F85646" style={{ right: 40, top: 30 }} />
           <PixelHeart size={3} color="#FFB8C8" style={{ right: 90, top: 80 }} />
           <PixelHeart size={4} color="#FFE9A8" style={{ right: 20, top: 130 }} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 24, alignItems: 'start' }}>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div className="why-wardrobe-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
+            <div className="why-wardrobe-copy" style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 24, alignItems: 'start' }}>
+              <div className="why-wardrobe-visual" style={{ display: 'flex', justifyContent: 'center' }}>
                 <img
                   src="heal.png"
                   alt="WardrobeForge heal icon"
@@ -206,7 +206,7 @@ const MainPage = ({ goto, currentUser }) => {
                   }}
                 />
               </div>
-              <div style={{ paddingLeft: 10 }}>
+              <div className="why-wardrobe-body" style={{ paddingLeft: 10 }}>
                 <h2 className="pixel" style={{ fontSize: 22, color: 'var(--coral-soft)', marginBottom: 14 }}>WHY WARDROBEFORGE</h2>
                 <p style={{ fontSize: 22, lineHeight: 1.4, marginBottom: 14 }}>
                   WardrobeForge is built around a
@@ -219,7 +219,7 @@ const MainPage = ({ goto, currentUser }) => {
                 </p>
               </div>
             </div>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <ul className="why-wardrobe-points" style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
               <BulletPoint icon="?" t="ROLL + COLLECT" b="Spend VTO points to roll for new NFTs and expand your digital wardrobe." />
               <BulletPoint icon="?" t="BUILD YOUR AVATAR" b="Equip your relics, mix pieces together, and create standout looks in the avatar lab." />
               <BulletPoint icon="?" t="DUPES = PROGRESS" b="Duplicate rolls are still valuable, boosting star power and helping grow your avatar XP." />
