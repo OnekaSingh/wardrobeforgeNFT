@@ -966,14 +966,14 @@ const MainPage = ({ goto }) => {
           <div>
             <div style={{ display:'flex', gap:6, marginBottom:18 }}>
               <span className="chip coral">v0.4 BETA</span>
-              <span className="chip">EVERY THREAD, A TWIN</span>
+              <span className="chip">A WardrobeForge Product</span>
             </div>
             <h1 className="pixel" style={{ fontSize:36, lineHeight:1.15, marginBottom:18 }}>
-              WEAR IT IRL.<br /><span style={{ color:'var(--coral)' }}>WIELD IT</span> ONLINE.
+              Forge Your<br /><span style={{ color:'var(--coral)', fontSize:44 }}>Wardrobe.</span>
             </h1>
             <p style={{ fontSize:22, marginBottom:26, maxWidth:520 }}>
-              WardrobeForge mints an <b>NFT twin</b> for every physical garment we ship.
-              Buy a hoodie, unlock a pixel-art relic, equip it on your avatar, and earn 100 points in our virtual try-on app.
+              WardrobeForge mints NFT pieces for own VTO avatars. Claim ponts, roll for pieces,
+              forge your wardrobe and build avatars.
             </p>
             <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
               <button className="pxl-btn" onClick={() => goto('avatar')}>ENTER WARDROBE</button>
@@ -1497,11 +1497,13 @@ const App = () => {
       </main>
 
       <footer className="foot">
-        <div style={{ marginBottom:14 }}>© WARDROBEFORGE · 2026 · EVERY THREAD A TWIN</div>
+        <div style={{ marginBottom:14 }}>2026 WardrobeForge · All rights reserved · Forge Your Wardrobe</div>
         <div>
           <a onClick={() => goto('main')} style={{ cursor:'pointer' }}>HOME</a> ·
           <a onClick={() => goto('avatar')} style={{ cursor:'pointer' }}>AVATAR</a> ·
           <a onClick={() => goto('nfts')} style={{ cursor:'pointer' }}>NFTS</a> ·
+          <a onClick={() => goto('topup')} style={{ cursor:'pointer' }}>TOP UP</a> ·
+          <a onClick={() => goto('account')} style={{ cursor:'pointer' }}>SIGN IN</a> ·
           <a onClick={() => goto('privacy')} style={{ cursor:'pointer' }}>PRIVACY</a> ·
           <a onClick={() => goto('terms')} style={{ cursor:'pointer' }}>TERMS</a>
         </div>

@@ -66,6 +66,16 @@ const MainPage = ({ goto, currentUser }) => {
   const featured = featuredIds
     .map((id) => browsableCatalog.find((n) => n.id === id))
     .filter(Boolean);
+  const monthlyTopAvatars = [
+    { src: 'weekly/1010101.png', name: 'Moon Bloom 01', serial: '#0101 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/1111.png', name: 'Cloud Charm 11', serial: '#1111 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/111111112343.png', name: 'Crown Pulse 23', serial: '#2343 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/22222.png', name: 'Twilight Rune 22', serial: '#2222 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/33333.png', name: 'Star Drift 33', serial: '#3333 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/4444.png', name: 'Frost Nova 44', serial: '#4444 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/5555.png', name: 'Velvet Arc 55', serial: '#5555 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/6666.png', name: 'Silver Ember 66', serial: '#6666 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+  ];
   const wardrobeTarget = currentUser ? 'avatar' : 'account';
   const wardrobeLabel = currentUser ? 'ENTER WARDROBE' : 'CREATE ACCOUNT';
 
@@ -77,16 +87,15 @@ const MainPage = ({ goto, currentUser }) => {
           <div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
               <span className="chip coral">v0.4 BETA</span>
-              <span className="chip">EVERY THREAD, A TWIN</span>
+              <span className="chip">A WardrobeForge Product</span>
             </div>
             <h1 className="pixel" style={{ fontSize: 36, lineHeight: 1.15, marginBottom: 18 }}>
-              WEAR IT IRL.<br />
-              <span style={{ color: 'var(--coral)' }}>WIELD IT</span> ONLINE.
+              Forge Your<br />
+              <span style={{ color: 'var(--coral)', fontSize: 44 }}>Wardrobe.</span>
             </h1>
             <p style={{ fontSize: 22, marginBottom: 26, maxWidth: 520 }}>
-              WardrobeForge mints an <b>NFT twin</b> for every physical garment we ship.
-              Buy a hoodie, unlock a pixel-art relic, equip it on your avatar, and earn 100 points
-              in our virtual try-on app.
+              WardrobeForge mints NFT pieces for own VTO avatars. Claim ponts, roll for pieces,
+              forge your wardrobe and build avatars.
             </p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
               <button
@@ -177,15 +186,15 @@ const MainPage = ({ goto, currentUser }) => {
 
       {/* WHY IT WORKS */}
       <section className="page" style={{ paddingTop: 0 }}>
-        <div className="pxl-box" style={{ background: 'var(--ink)', color: '#fff', padding: 36, position: 'relative', overflow: 'hidden' }}>
+        <div className="pxl-box why-wardrobe-card" style={{ background: 'var(--ink)', color: '#fff', padding: 36, position: 'relative', overflow: 'hidden' }}>
           {/* decorative pixel hearts */}
           <PixelHeart size={5} color="#F85646" style={{ right: 40, top: 30 }} />
           <PixelHeart size={3} color="#FFB8C8" style={{ right: 90, top: 80 }} />
           <PixelHeart size={4} color="#FFE9A8" style={{ right: 20, top: 130 }} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 24, alignItems: 'start' }}>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div className="why-wardrobe-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
+            <div className="why-wardrobe-copy" style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 24, alignItems: 'start' }}>
+              <div className="why-wardrobe-visual" style={{ display: 'flex', justifyContent: 'center' }}>
                 <img
                   src="heal.png"
                   alt="WardrobeForge heal icon"
@@ -197,7 +206,7 @@ const MainPage = ({ goto, currentUser }) => {
                   }}
                 />
               </div>
-              <div style={{ paddingLeft: 10 }}>
+              <div className="why-wardrobe-body" style={{ paddingLeft: 10 }}>
                 <h2 className="pixel" style={{ fontSize: 22, color: 'var(--coral-soft)', marginBottom: 14 }}>WHY WARDROBEFORGE</h2>
                 <p style={{ fontSize: 22, lineHeight: 1.4, marginBottom: 14 }}>
                   WardrobeForge is built around a
@@ -210,12 +219,43 @@ const MainPage = ({ goto, currentUser }) => {
                 </p>
               </div>
             </div>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <ul className="why-wardrobe-points" style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
               <BulletPoint icon="?" t="ROLL + COLLECT" b="Spend VTO points to roll for new NFTs and expand your digital wardrobe." />
               <BulletPoint icon="?" t="BUILD YOUR AVATAR" b="Equip your relics, mix pieces together, and create standout looks in the avatar lab." />
               <BulletPoint icon="?" t="DUPES = PROGRESS" b="Duplicate rolls are still valuable, boosting star power and helping grow your avatar XP." />
               <BulletPoint icon="?" t="EARN MORE VTO" b="Come back daily, climb the leaderboard, and top up for more chances to unlock rare pieces." />
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* MONTHLY TOP AVATARS */}
+      <section className="page monthly-top-section" style={{ paddingTop: 0 }}>
+        <div className="monthly-top-shell">
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            <h2 className="pixel" style={{ fontSize: 22 }}>This Month&apos;s Top Avatars</h2>
+            <span className="mono" style={{ fontSize: 18, opacity: .7 }}>// monthly favorites in rotation</span>
+          </div>
+
+          <div className="avatar-orbit-stage">
+            <div className="avatar-orbit-track">
+              <div className="avatar-orbit-spacer" aria-hidden="true" />
+              {[...monthlyTopAvatars, ...monthlyTopAvatars].map((avatar, index) => (
+                <figure key={`${avatar.src}-${index}`} className="avatar-orbit-card nft-card pxl-box">
+                  <div className="avatar-orbit-ribbon ribbon mint">Top Avatar</div>
+                  <div className="avatar-orbit-thumb nft-thumb">
+                    <img src={avatar.src} alt={avatar.name} />
+                  </div>
+                  <div className="pixel avatar-orbit-name">{avatar.name}</div>
+                  <div className="mono avatar-orbit-serial">{avatar.serial}</div>
+                  <div className="avatar-orbit-meta">
+                    <span className="chip sky">{avatar.tagA}</span>
+                    <span className="chip pink">{avatar.tagB}</span>
+                  </div>
+                </figure>
+              ))}
+              <div className="avatar-orbit-spacer" aria-hidden="true" />
+            </div>
           </div>
         </div>
       </section>

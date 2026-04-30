@@ -1,0 +1,7 @@
+*
+!project
+!project/**
+!api
+!api/**
+!vercel.json
+!.vercelignore

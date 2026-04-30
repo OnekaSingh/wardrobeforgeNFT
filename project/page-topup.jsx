@@ -23,7 +23,7 @@ const TopUpCard = ({ pack, onClaim, busy, onOpenCustom }) => (
       <div className="pixel topup-card-amount">{pack.custom ? 'CUSTOM' : `${pack.tokens.toLocaleString()} TOKENS`}</div>
       <div className="mono topup-card-price">{pack.custom ? 'SLIDER' : formatUsd(pack.price)}</div>
       <button className="pxl-btn topup-card-cta" onClick={pack.custom ? onOpenCustom : () => onClaim(pack.tokens)}>
-        {pack.custom ? 'OPEN' : busy ? 'ADDING...' : 'TOP UP'}
+        {pack.custom ? 'OPEN' : busy ? 'CONNECTING...' : 'TOP UP'}
       </button>
     </div>
   </div>
@@ -36,29 +36,67 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
   );
   const [customTokens, setCustomTokens] = React.useState(2500);
   const [status, setStatus] = React.useState('');
-  const [busyAmount, setBusyAmount] = React.useState(null);
+  const [busyPackId, setBusyPackId] = React.useState('');
   const [isCustomOpen, setIsCustomOpen] = React.useState(false);
   const customPrice = Number((customTokens * TOP_UP_CUSTOM_RATE).toFixed(2));
 
-  const handleTopUp = (amount) => {
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const squareStatus = params.get('square_status');
+    const tokens = Number(params.get('tokens'));
+
+    if (squareStatus === 'success') {
+      const tokenLabel = Number.isFinite(tokens) && tokens > 0 ? `${tokens.toLocaleString()} tokens` : 'your top-up';
+      setStatus(`Square checkout completed for ${tokenLabel}. Payment collection is now live, but token delivery still needs a trusted webhook/backend confirmation step before balances can be credited automatically.`);
+
+      params.delete('square_status');
+      params.delete('pack');
+      params.delete('tokens');
+      const nextSearch = params.toString();
+      const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || '#topup'}`;
+      window.history.replaceState({}, document.title, nextUrl);
+    }
+  }, []);
+
+  const handleTopUp = async ({ packId, amount, custom = false }) => {
     if (!currentUser) {
       setStatus('Sign in to add tokens to your backend-linked WardrobeForge profile on this device.');
       if (openAuthModal) openAuthModal();
       return;
     }
 
-    setBusyAmount(amount);
+    setBusyPackId(packId);
     setStatus('');
+
     try {
-      window.WardrobeForgeAuth?.addVtoBalance?.({
-        userId: currentUser.id,
-        amount,
+      const checkoutResponse = await fetch('/api/square/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          packId,
+          customTokens: custom ? amount : null,
+          userId: currentUser.id,
+          displayName: currentUser.displayName,
+          buyerEmail: currentUser.email,
+        }),
       });
-      setStatus(`${amount.toLocaleString()} tokens added to ${currentUser.displayName}.`);
+
+      const checkoutPayload = await checkoutResponse.json().catch(() => null);
+      if (!checkoutResponse.ok) {
+        throw new Error(checkoutPayload?.message || 'Could not start Square checkout right now.');
+      }
+
+      if (!checkoutPayload?.checkoutUrl) {
+        throw new Error('Square did not return a checkout link.');
+      }
+
+      window.location.href = checkoutPayload.checkoutUrl;
     } catch (error) {
-      setStatus(error.message || 'Could not add tokens right now.');
+      setStatus(error.message || 'Could not start Square checkout right now.');
     } finally {
-      setBusyAmount(null);
+      setBusyPackId('');
     }
   };
 
@@ -81,8 +119,8 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
             <TopUpCard
               key={pack.id}
               pack={pack}
-              busy={busyAmount === pack.tokens}
-              onClaim={handleTopUp}
+              busy={busyPackId === pack.id}
+              onClaim={(amount) => handleTopUp({ packId: pack.id, amount })}
               onOpenCustom={() => setIsCustomOpen(true)}
             />
           ))}
@@ -92,7 +130,7 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
       <div className="pxl-box" style={{ background: '#fff', padding: 24, marginTop: 28 }}>
         <div className="pixel" style={{ fontSize: 14, marginBottom: 10 }}>TOP-UP NOTES</div>
         <div className="mono" style={{ fontSize: 19, lineHeight: 1.5 }}>
-          {status || 'This is still a prototype checkout. Auth now comes from the shared backend, while test top-ups still change the signed-in device profile for wardrobe testing.'}
+          {status || 'Square checkout is now wired through a secure server route. Top-up buttons send buyers to a real Square-hosted payment page, while automatic token delivery still needs a verified post-payment backend step.'}
         </div>
         {!currentUser && (
           <div style={{ marginTop: 18 }}>
@@ -148,8 +186,8 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
                 <span>20,000</span>
               </div>
 
-              <button className="pxl-btn topup-custom-cta" onClick={() => handleTopUp(customTokens)}>
-                {busyAmount === customTokens ? 'ADDING...' : 'TOP UP CUSTOM'}
+              <button className="pxl-btn topup-custom-cta" onClick={() => handleTopUp({ packId: 'topup-custom', amount: customTokens, custom: true })}>
+                {busyPackId === 'topup-custom' ? 'CONNECTING...' : 'TOP UP CUSTOM'}
               </button>
             </div>
           </div>

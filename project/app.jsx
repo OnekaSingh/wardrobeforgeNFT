@@ -2,13 +2,16 @@
 
 const { useState: useStateApp, useEffect: useEffectApp } = React;
 
+const getRouteFromHash = () => {
+  const rawHash = String(window.location.hash || '');
+  const normalizedHash = rawHash.replace(/^#\/?/, '');
+  return normalizedHash || 'main';
+};
+
 const App = () => {
   const authApi = window.WardrobeForgeAuth;
   const AuthModalComponent = window.AuthModal;
-  const [page, setPage] = useStateApp(() => {
-    const h = window.location.hash.replace('#', '') || 'main';
-    return h;
-  });
+  const [page, setPage] = useStateApp(() => getRouteFromHash());
   const [nftFocus, setNftFocus] = useStateApp(null);
   const [avatarEquipRequest, setAvatarEquipRequest] = useStateApp(null);
   const [currentUser, setCurrentUser] = useStateApp(() => authApi?.getCurrentUser?.() || null);
@@ -29,7 +32,7 @@ const App = () => {
     setPage(p);
     if (focus) setNftFocus(focus);
     if (equipRequest) setAvatarEquipRequest(equipRequest);
-    window.location.hash = p;
+    window.location.hash = `/${p}`;
     window.scrollTo(0, 0);
   };
 
@@ -37,7 +40,7 @@ const App = () => {
   const closeAuthModal = () => setIsAuthModalOpen(false);
 
   useEffectApp(() => {
-    const onHash = () => setPage(window.location.hash.replace('#', '') || 'main');
+    const onHash = () => setPage(getRouteFromHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -124,13 +127,13 @@ const Nav = ({ page, goto, currentUser }) => {
 
 const Footer = ({ goto }) => (
   <footer className="foot">
-    <div style={{ marginBottom: 14 }}>? WARDROBEFORGE · 2026 · EVERY THREAD A TWIN</div>
+    <div style={{ marginBottom: 14 }}>2026 WardrobeForge · All rights reserved · Forge Your Wardrobe</div>
     <div>
       <a onClick={() => goto('main')} style={{ cursor: 'pointer' }}>HOME</a>·
       <a onClick={() => goto('avatar')} style={{ cursor: 'pointer' }}>AVATAR</a>·
       <a onClick={() => goto('nfts')} style={{ cursor: 'pointer' }}>NFTS</a>·
       <a onClick={() => goto('topup')} style={{ cursor: 'pointer' }}>TOP UP</a>·
-      <a onClick={() => goto('account')} style={{ cursor: 'pointer' }}>SIGN IN / SIGN UP</a>·
+      <a onClick={() => goto('account')} style={{ cursor: 'pointer' }}>SIGN IN</a>·
       <a onClick={() => goto('privacy')} style={{ cursor: 'pointer' }}>PRIVACY</a>·
       <a onClick={() => goto('terms')} style={{ cursor: 'pointer' }}>TERMS</a>
     </div>
