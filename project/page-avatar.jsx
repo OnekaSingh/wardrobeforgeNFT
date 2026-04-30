@@ -164,6 +164,8 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
   const [openAuthenticityArtId, setOpenAuthenticityArtId] = useState(null);
   const avatarCanvasRef = React.useRef(null);
   const [savedLooks, setSavedLooks] = useState(() => readSavedLooks(savedLooksStorageKey));
+  const [avatarStateLoaded, setAvatarStateLoaded] = React.useState(() => !currentUser?.id);
+  const avatarSyncTimeoutRef = React.useRef(null);
 
   const ownedNFTs = NFT_LIBRARY.filter(n => ownedArtIds.has(n.art));
   const slotItems = ownedNFTs
@@ -187,9 +189,39 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
   }, [equipped, loadoutStorageKey]);
 
   React.useEffect(() => {
-    setEquipped(readEquippedLoadout(loadoutStorageKey, fallbackLoadout, sanitizeEquippedArt));
-    setSavedLooks(readSavedLooks(savedLooksStorageKey));
-  }, [fallbackLoadout, loadoutStorageKey, sanitizeEquippedArt, savedLooksStorageKey]);
+    let cancelled = false;
+    const localEquipped = readEquippedLoadout(loadoutStorageKey, fallbackLoadout, sanitizeEquippedArt);
+    const localSavedLooks = readSavedLooks(savedLooksStorageKey);
+
+    setEquipped(localEquipped);
+    setSavedLooks(localSavedLooks);
+    setAvatarStateLoaded(!currentUser?.id);
+
+    if (!currentUser?.id) return () => {};
+
+    window.WardrobeForgeAuth?.getAvatarState?.({
+      userId: currentUser.id,
+      fallbackLoadout: localEquipped,
+      fallbackSavedLooks: localSavedLooks,
+    }).then((avatarState) => {
+      if (cancelled || !avatarState) return;
+      setEquipped({
+        head: sanitizeEquippedArt(avatarState.equipped?.head, fallbackLoadout.head),
+        outfit: sanitizeEquippedArt(avatarState.equipped?.outfit, fallbackLoadout.outfit),
+        item: sanitizeEquippedArt(avatarState.equipped?.item, fallbackLoadout.item),
+        boots: sanitizeEquippedArt(avatarState.equipped?.boots, fallbackLoadout.boots),
+      });
+      setSavedLooks(Array.isArray(avatarState.savedLooks) ? avatarState.savedLooks : []);
+      setAvatarStateLoaded(true);
+    }).catch(() => {
+      if (cancelled) return;
+      setAvatarStateLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, fallbackLoadout, loadoutStorageKey, sanitizeEquippedArt, savedLooksStorageKey]);
 
   React.useEffect(() => {
     const persistedLooks = persistSavedLooks(savedLooksStorageKey, savedLooks);
@@ -197,6 +229,29 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
       setSavedLooks(persistedLooks);
     }
   }, [savedLooks, savedLooksStorageKey]);
+
+  React.useEffect(() => {
+    if (!currentUser?.id || !avatarStateLoaded) return () => {};
+
+    if (avatarSyncTimeoutRef.current) {
+      window.clearTimeout(avatarSyncTimeoutRef.current);
+    }
+
+    avatarSyncTimeoutRef.current = window.setTimeout(() => {
+      window.WardrobeForgeAuth?.saveAvatarState?.({
+        userId: currentUser.id,
+        equipped,
+        savedLooks,
+      }).catch(() => {});
+    }, 250);
+
+    return () => {
+      if (avatarSyncTimeoutRef.current) {
+        window.clearTimeout(avatarSyncTimeoutRef.current);
+        avatarSyncTimeoutRef.current = null;
+      }
+    };
+  }, [avatarStateLoaded, currentUser?.id, equipped, savedLooks]);
 
   React.useEffect(() => {
     if (!equipRequest?.art || !equipRequest?.slot) return;

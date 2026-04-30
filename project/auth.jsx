@@ -600,6 +600,70 @@ const syncAccountFromBackend = async (userId = null, token = null) => {
   return snapshot;
 };
 
+const normalizeAvatarLoadout = (loadout, fallback = {}) => ({
+  head: trimValue(loadout?.head) || fallback.head || null,
+  outfit: trimValue(loadout?.outfit) || fallback.outfit || null,
+  item: trimValue(loadout?.item) || fallback.item || null,
+  boots: trimValue(loadout?.boots) || fallback.boots || null,
+});
+
+const normalizeSavedLooks = (savedLooks) => (
+  Array.isArray(savedLooks)
+    ? savedLooks
+      .filter((entry) => entry && typeof entry.imageSrc === 'string')
+      .map((entry) => ({
+        id: trimValue(entry.id) || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        imageSrc: entry.imageSrc,
+      }))
+      .slice(0, 24)
+    : []
+);
+
+const getAvatarState = async ({ userId, fallbackLoadout, fallbackSavedLooks = [] }) => {
+  const token = getCurrentToken();
+  const cleanUserId = trimValue(userId);
+  if (!cleanUserId || !token || isLocalSessionToken(token)) {
+    return {
+      equipped: normalizeAvatarLoadout(fallbackLoadout, fallbackLoadout),
+      savedLooks: normalizeSavedLooks(fallbackSavedLooks),
+    };
+  }
+
+  const result = await apiRequest('/account/avatar-state', { token });
+  return {
+    equipped: normalizeAvatarLoadout(result?.equipped, fallbackLoadout),
+    savedLooks: normalizeSavedLooks(result?.savedLooks),
+  };
+};
+
+const saveAvatarState = async ({ userId, equipped, savedLooks }) => {
+  const token = getCurrentToken();
+  const cleanUserId = trimValue(userId);
+  const normalizedEquipped = normalizeAvatarLoadout(equipped, {});
+  const normalizedSavedLooks = normalizeSavedLooks(savedLooks);
+
+  if (!cleanUserId || !token || isLocalSessionToken(token)) {
+    return {
+      equipped: normalizedEquipped,
+      savedLooks: normalizedSavedLooks,
+    };
+  }
+
+  const result = await apiRequest('/account/avatar-state', {
+    method: 'PUT',
+    token,
+    body: {
+      equipped: normalizedEquipped,
+      savedLooks: normalizedSavedLooks,
+    },
+  });
+
+  return {
+    equipped: normalizeAvatarLoadout(result?.equipped, normalizedEquipped),
+    savedLooks: normalizeSavedLooks(result?.savedLooks),
+  };
+};
+
 const getCurrentToken = () => trimValue(readStoredSession()?.token);
 
 const getPerUserFlagKey = (baseKey, userId) => `${baseKey}:${userId}`;
@@ -1260,11 +1324,13 @@ window.WardrobeForgeAuth = {
   readStoredAccounts,
   redeemSquareTopUpReward,
   refreshSession,
+  saveAvatarState,
   sendVerificationCode,
   setBackendBaseUrl,
   setCurrentUser,
   signUp,
   spendVtoAndGrantItem,
+  getAvatarState,
   updateStoredAccount,
 };
 
