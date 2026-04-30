@@ -381,6 +381,10 @@ const PixelizedAvatar = ({ pixelData, colorMap = {}, scale = 4, style = {} }) =>
 
 const AVATAR_STORAGE_KEY = 'wardrobeforge.avatar.v1';
 
+const getAvatarScopedStorageKey = () => (
+  window.WardrobeForgeAuth?.getScopedStorageKey?.(AVATAR_STORAGE_KEY) || AVATAR_STORAGE_KEY
+);
+
 const mixHexColors = (fromHex, toHex, amount) => {
   const [r1, g1, b1] = PixelizerUtils.hexToRgb(fromHex);
   const [r2, g2, b2] = PixelizerUtils.hexToRgb(toHex);
@@ -415,7 +419,7 @@ const buildUploadedAvatarColorMap = (editableRegions, skinTones, eyeColors, skin
 
 const saveAvatarState = (avatarState) => {
   try {
-    window.localStorage.setItem(AVATAR_STORAGE_KEY, JSON.stringify(avatarState));
+    window.localStorage.setItem(getAvatarScopedStorageKey(), JSON.stringify(avatarState));
   } catch (error) {
     // ignore storage failures in the static prototype
   }
@@ -423,7 +427,7 @@ const saveAvatarState = (avatarState) => {
 
 const loadAvatarState = () => {
   try {
-    const raw = window.localStorage.getItem(AVATAR_STORAGE_KEY);
+    const raw = window.localStorage.getItem(getAvatarScopedStorageKey());
     return raw ? JSON.parse(raw) : null;
   } catch (error) {
     return null;

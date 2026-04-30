@@ -3,6 +3,32 @@
 const { useState, useEffect, useMemo } = React;
 
 /* ----- Helpers ----- */
+const NFTArt = ({ nft, scale = 5, mode = 'inventory', style = {} }) => {
+  const imageGearMap = window.IMAGE_GEAR_MAP || {};
+  const imageGear = nft?.art ? imageGearMap[nft.art] : null;
+  const imageSrc = mode === 'avatar' ? imageGear?.avatarSrc : imageGear?.inventorySrc;
+
+  if (imageSrc) {
+    return (
+      <img
+        src={imageSrc}
+        alt={nft?.name || nft?.art || 'NFT artwork'}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          imageRendering: 'pixelated',
+          display: 'block',
+          ...style,
+        }}
+      />
+    );
+  }
+
+  if (!nft?.art) return null;
+  return <ClothingArt id={nft.art} scale={scale} style={style} />;
+};
+
 const NFTCard = ({ nft, onClick, owned }) => {
   const ribbonColor = nft.rarity === 'Legendary' ? '' : nft.rarity === 'Epic' ? 'purple' : nft.rarity === 'Rare' ? 'mint' : 'gold';
   return (
@@ -10,7 +36,7 @@ const NFTCard = ({ nft, onClick, owned }) => {
       <div className={`ribbon ${ribbonColor}`}>{nft.rarity}</div>
       <div className="nft-thumb dither-bg" style={{ marginBottom: 12 }}>
         <div style={{ position: 'relative' }}>
-          <ClothingArt id={nft.art} scale={5} />
+          <NFTArt nft={nft} scale={5} />
         </div>
         {owned === false && (
           <div style={{
@@ -34,8 +60,14 @@ const NFTCard = ({ nft, onClick, owned }) => {
 };
 
 /* ============= MAIN PAGE ============= */
-const MainPage = ({ goto }) => {
-  const featured = NFT_LIBRARY.filter(n => ['NFT-HEAD-0001', 'NFT-OUTFIT-0003', 'NFT-0008', 'NFT-ITEM-0001'].includes(n.id));
+const MainPage = ({ goto, currentUser }) => {
+  const browsableCatalog = window.BROWSABLE_NFT_LIBRARY || NFT_LIBRARY;
+  const featuredIds = ['NFT-OUTFIT-0003', 'NFT-BOOTS-0008', 'NFT-HEAD-0012', 'NFT-ITEM-0042'];
+  const featured = featuredIds
+    .map((id) => browsableCatalog.find((n) => n.id === id))
+    .filter(Boolean);
+  const wardrobeTarget = currentUser ? 'avatar' : 'account';
+  const wardrobeLabel = currentUser ? 'ENTER WARDROBE' : 'CREATE ACCOUNT';
 
   return (
     <div>
@@ -57,13 +89,23 @@ const MainPage = ({ goto }) => {
               in our virtual try-on app.
             </p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-              <button className="pxl-btn" onClick={() => goto('avatar')}>ENTER WARDROBE</button>
+              <button
+                className="pxl-btn"
+                onClick={() => { window.location.href = 'https://wardrobeforge.com'; }}
+                style={{
+                  background: 'var(--ink)',
+                  boxShadow: '0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink), 0 8px 0 0 var(--coral)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                WardrobeForge
+              </button>
               <button className="pxl-btn ghost" onClick={() => goto('nfts')}>BROWSE RELICS</button>
             </div>
             <div style={{ display: 'flex', gap: 28, marginTop: 36, flexWrap: 'wrap' }}>
-              <Stat n="12,400" k="THREADS MINTED" />
-              <Stat n="2,138" k="WARDROBES" />
-              <Stat n="100%" k="ANTI-COUNTERFEIT" />
+              <AnimatedStat target={12000} prefix="+" k="THREADS MINTED" />
+              <AnimatedStat target={2000} prefix="+" k="WARDROBES" />
+              <AnimatedStat target={100} suffix="%" k="ANTI-COUNTERFEIT" />
             </div>
           </div>
 
@@ -76,17 +118,30 @@ const MainPage = ({ goto }) => {
             <SparkleDot color="#FFFFFF" size={3} style={{ left: '85%', top: '40%' }} />
             <SparkleDot color="#FFE9A8" size={3} style={{ left: '10%', top: '60%' }} />
 
-            <div className="float">
+            <div className="float" style={{ position: 'relative', display: 'inline-block' }}>
               <img
-                src="avatar.png?v=3"
-                alt="WardrobeForge avatar"
+                src="trio.png?v=1"
+                alt="WardrobeForge trio"
                 style={{
                   display: 'block',
-                  width: 240,
+                  width: 500,
                   height: 'auto',
                   imageRendering: 'pixelated',
                 }}
               />
+              <button
+                className="pxl-btn"
+                onClick={() => goto('account')}
+                style={{
+                  position: 'absolute',
+                  right: 16,
+                  bottom: 72,
+                  padding: '22px 30px',
+                  fontSize: 18,
+                }}
+              >
+                Try Now!
+              </button>
             </div>
           </div>
         </div>
@@ -99,10 +154,10 @@ const MainPage = ({ goto }) => {
           <span className="mono" style={{ fontSize: 18, opacity: .6 }}>// four steps, one wardrobe</span>
         </div>
         <div className="grid cols-4">
-          <Step n="01" title="BUY THE PIECE" body="Order any garment from our IRL drop. Ships in 3–5 days, in a recycled mailer." />
-          <Step n="02" title="MINT THE TWIN" body="A pixel-art NFT twin is forged on-chain and lands in your WardrobeForge inventory." />
-          <Step n="03" title="UNLOCK A RELIC" body="Each NFT rolls a unique virtual relic — staff, helm, cloak, orb — with its own ID and serial." />
-          <Step n="04" title="EARN + EQUIP" body="Wear it on your avatar, port it across worlds, and bank 100 points in our VTO AI app." />
+          <Step n="01" title="SIGN UP" body="Create an account and get started with NFTs." />
+          <Step n="02" title="ROLL THE DICE" body="Roll for different NFTs with your VTO points. New accounts get free points, and come back to claim your free points daily!" />
+          <Step n="03" title="UNLOCK A RELIC" body="Each NFT rolls a unique virtual relic — staff, helm, cloak, orb — with its own NFT ID. Roll a dupe? No problem. Dupes increase your star power and overall avatar XP. Top up and recieve a free, random NFT gift with your purchase." />
+          <Step n="04" title="EARN + EQUIP" body="Create avatars with your relic, and post your creations for a chance to win free VTO points if you make the leaderboard." />
         </div>
       </section>
 
@@ -129,23 +184,37 @@ const MainPage = ({ goto }) => {
           <PixelHeart size={4} color="#FFE9A8" style={{ right: 20, top: 130 }} />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40 }}>
-            <div>
-              <h2 className="pixel" style={{ fontSize: 22, color: 'var(--coral-soft)', marginBottom: 14 }}>WHY THIS WORKS</h2>
-              <p style={{ fontSize: 22, lineHeight: 1.4, marginBottom: 14 }}>
-                Counterfeit goods cost the apparel industry $50B+ a year. We solve it by making the
-                <b style={{ color: 'var(--pink-neon)' }}> proof of authenticity </b>
-                more fun than the bootleg.
-              </p>
-              <p style={{ fontSize: 20, opacity: .8 }}>
-                Every NFT twin doubles as a passport: scan, verify, equip, earn. The collector knows
-                it's real. The avatar knows it's rare. The wardrobe never lies.
-              </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 24, alignItems: 'start' }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <img
+                  src="heal.png"
+                  alt="WardrobeForge heal icon"
+                  style={{
+                    display: 'block',
+                    width: 220,
+                    height: 'auto',
+                    imageRendering: 'pixelated',
+                  }}
+                />
+              </div>
+              <div style={{ paddingLeft: 10 }}>
+                <h2 className="pixel" style={{ fontSize: 22, color: 'var(--coral-soft)', marginBottom: 14 }}>WHY WARDROBEFORGE</h2>
+                <p style={{ fontSize: 22, lineHeight: 1.4, marginBottom: 14 }}>
+                  WardrobeForge is built around a
+                  <b style={{ color: 'var(--pink-neon)' }}> fully digital collectible wardrobe </b>
+                  where every roll can unlock a new relic, boost your avatar, and give you more ways to play.
+                </p>
+                <p style={{ fontSize: 20, opacity: .8 }}>
+                  Collect, equip, level up, and show off your best looks. The fun comes from the hunt,
+                  the rarity, the dupes turning into progression, and the chance to earn more VTO by creating.
+                </p>
+              </div>
             </div>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <BulletPoint icon="?" t="ANTI-COUNTERFEIT" b="On-chain receipt tied to a serial woven into the garment." />
-              <BulletPoint icon="?" t="VIRTUAL TRY-ON" b="Render any owned item on your chibi in the avatar lab." />
-              <BulletPoint icon="?" t="100 POINTS / NFT" b="Drop into our Wardrobe VTO AI app and stack them." />
-              <BulletPoint icon="?" t="PORTABLE" b="Wearable in any partner world. ERC-1155 baseline." />
+              <BulletPoint icon="?" t="ROLL + COLLECT" b="Spend VTO points to roll for new NFTs and expand your digital wardrobe." />
+              <BulletPoint icon="?" t="BUILD YOUR AVATAR" b="Equip your relics, mix pieces together, and create standout looks in the avatar lab." />
+              <BulletPoint icon="?" t="DUPES = PROGRESS" b="Duplicate rolls are still valuable, boosting star power and helping grow your avatar XP." />
+              <BulletPoint icon="?" t="EARN MORE VTO" b="Come back daily, climb the leaderboard, and top up for more chances to unlock rare pieces." />
             </ul>
           </div>
         </div>
@@ -155,19 +224,43 @@ const MainPage = ({ goto }) => {
       <section className="page" style={{ textAlign: 'center', paddingTop: 0 }}>
         <h2 className="pixel" style={{ fontSize: 26, marginBottom: 14 }}>READY TO SUIT UP?</h2>
         <p className="mono" style={{ fontSize: 22, opacity: .7, marginBottom: 22 }}>Press start. The forge is open.</p>
-        <button className="pxl-btn" onClick={() => goto('avatar')}>OPEN MY WARDROBE</button>
+        <button className="pxl-btn" onClick={() => goto(wardrobeTarget)}>{currentUser ? 'OPEN MY WARDROBE' : 'SIGN UP TO START'}</button>
         <span className="blink" style={{ display: 'inline-block', marginLeft: 14, fontFamily: 'PressStart', fontSize: 14, color: 'var(--coral)' }}>?</span>
       </section>
     </div>
   );
 };
 
-const Stat = ({ n, k }) => (
-  <div>
-    <div className="pixel" style={{ fontSize: 22, color: 'var(--coral)' }}>{n}</div>
-    <div className="pixel" style={{ fontSize: 9, opacity: .7, marginTop: 4 }}>{k}</div>
-  </div>
-);
+const AnimatedStat = ({ target, k, prefix = '', suffix = '', duration = 1400 }) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    let frameId = 0;
+    const startTime = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(target * easedProgress));
+
+      if (progress < 1) {
+        frameId = window.requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [duration, target]);
+
+  return (
+    <div>
+      <div className="pixel" style={{ fontSize: 22, color: 'var(--coral)' }}>
+        {prefix}{value.toLocaleString('en-US')}{suffix}
+      </div>
+      <div className="pixel" style={{ fontSize: 9, opacity: .7, marginTop: 4 }}>{k}</div>
+    </div>
+  );
+};
 
 const Step = ({ n, title, body }) => (
   <div className="pxl-box" style={{ padding: 18, background: '#fff' }}>
@@ -189,3 +282,4 @@ const BulletPoint = ({ icon, t, b }) => (
 
 window.MainPage = MainPage;
 window.NFTCard = NFTCard;
+window.NFTArt = NFTArt;

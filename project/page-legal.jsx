@@ -14,7 +14,7 @@ const PrivacyPage = () => (
         protecting it through this Privacy Policy ("Policy"). This Policy describes the types of information we may
         collect from you or that you may provide when you visit the website wardrobeforge.app (the "Site"), our
         affiliated mobile applications, our virtual try-on experience ("VTO Services"), and our blockchain-linked
-        digital twin services (collectively, the "Services"), and our practices for collecting, using, maintaining,
+        NFT marketplace and virtual item services (collectively, the "Services"), and our practices for collecting, using, maintaining,
         protecting, and disclosing that information.
       </p>
       <p>
@@ -25,7 +25,7 @@ const PrivacyPage = () => (
       <h2>2. INFORMATION WE COLLECT</h2>
       <h3>2.1 Information You Provide</h3>
       <ul>
-        <li>Account information (display name, email, mailing address for IRL garment fulfillment).</li>
+        <li>Account information, such as your display name, username, email address, and any profile details you choose to provide.</li>
         <li>Payment information processed by our PCI-DSS compliant payment processors. We do not store full payment card numbers.</li>
         <li>Public wallet addresses you connect to the Services for the purpose of minting, transferring, or displaying NFTs.</li>
         <li>Avatar configuration data, including selected skins, equipped items, and saved looks.</li>
@@ -42,10 +42,10 @@ const PrivacyPage = () => (
       <h2>3. HOW WE USE YOUR INFORMATION</h2>
       <p>We use information that we collect about you or that you provide to us, including any personal information:</p>
       <ul>
-        <li>To present the Services and their contents to you and to fulfill physical garment orders.</li>
-        <li>To mint, transfer, and verify the authenticity of digital twin NFTs associated with your purchases.</li>
+        <li>To present the Services and their contents to you and operate your account, wallet connections, and marketplace activity.</li>
+        <li>To mint, transfer, display, and verify ownership of NFTs and virtual items associated with your account or wallet.</li>
         <li>To award, calculate, and apply VTO Points (including the one-hundred (100) point credit per qualifying NFT mint).</li>
-        <li>To detect counterfeit goods and to honor anti-counterfeit warranties offered with our garments.</li>
+        <li>To detect fraud, abuse, unauthorized activity, and marketplace policy violations.</li>
         <li>To improve our Services and develop new features, including AI-driven try-on rendering.</li>
         <li>To comply with legal obligations and to enforce our Terms of Service.</li>
       </ul>
@@ -120,18 +120,18 @@ const TermsPage = () => (
       <p>
         These Terms of Service ("Terms") form a binding agreement between you ("User," "you") and WardrobeForge
         ("WardrobeForge," "we," "us") governing your access to and use of the WardrobeForge website, applications,
-        VTO Services, and digital twin offerings (collectively, the "Services"). By accessing the Services, you
+        VTO Services, and NFT marketplace offerings (collectively, the "Services"). By accessing the Services, you
         represent that you are at least eighteen (18) years of age, or the age of majority in your jurisdiction,
         whichever is greater.
       </p>
 
       <h2>2. THE WARDROBEFORGE PROTOCOL</h2>
-      <h3>2.1 Physical Goods and Digital Twins</h3>
+      <h3>2.1 NFTs and Virtual Items</h3>
       <p>
-        Each qualifying physical garment ("Garment") sold by WardrobeForge is paired with a non-fungible token
-        ("Digital Twin" or "NFT") minted to a blockchain address you control. The Digital Twin represents (a) a proof
-        of authenticity for the Garment, (b) a wearable virtual relic redeemable in our Services, and (c) a one-time
-        award of one hundred (100) points ("VTO Points") in our virtual try-on application.
+        WardrobeForge offers blockchain-based non-fungible tokens ("NFTs") and virtual wearable items for use within
+        our Services. NFTs may be minted to a blockchain address you control and may represent digital collectibles,
+        in-platform utility, avatar wearables, or a one-time award of one hundred (100) points ("VTO Points") in our
+        virtual try-on application.
       </p>
       <h3>2.2 Random Allocation</h3>
       <p>
@@ -147,26 +147,27 @@ const TermsPage = () => (
         responsible for any activity occurring under your account or wallet.
       </p>
 
-      <h2>4. PAYMENT, FULFILLMENT AND RETURNS</h2>
+      <h2>4. PAYMENTS, DIGITAL DELIVERY, AND FINALITY</h2>
       <ul>
-        <li>All Garment prices are listed in U.S. dollars exclusive of taxes and shipping.</li>
-        <li>Garments ship within five (5) business days of order confirmation, subject to inventory.</li>
-        <li>Returns of Garments are accepted within fourteen (14) days of delivery for unworn items in original packaging. <b>The associated Digital Twin NFT is non-refundable and shall be returned to the WardrobeForge treasury upon Garment refund.</b></li>
-        <li>VTO Points awarded for a refunded Garment are subject to claw-back.</li>
+        <li>Prices for NFTs, virtual items, and related Services may be listed in U.S. dollars, cryptocurrency, or both, exclusive of applicable taxes and blockchain network fees.</li>
+        <li>Digital delivery is completed when the applicable NFT or virtual item is made available in your WardrobeForge account, connected wallet, or both.</li>
+        <li>You are solely responsible for providing and maintaining an accurate wallet address and compatible wallet access. Transactions sent to an incorrect wallet address may be irreversible.</li>
+        <li>Unless otherwise required by law or expressly stated by WardrobeForge, purchases of NFTs and virtual items are final and non-refundable.</li>
+        <li>VTO Points awarded for a reversed, refunded, or disputed transaction are subject to claw-back.</li>
       </ul>
 
       <h2>5. INTELLECTUAL PROPERTY</h2>
       <p>
         WardrobeForge retains all right, title, and interest in and to the Services, the WardrobeForge mark, the
-        underlying pixel-art aesthetic, and the metadata schema for Digital Twins. Subject to your continued ownership
-        of the corresponding Digital Twin, WardrobeForge grants you a worldwide, non-exclusive, royalty-free license
-        to display, copy, and use the relic artwork (a) for personal, non-commercial purposes, and (b) for commercial
+        underlying pixel-art aesthetic, and the metadata schema for its NFTs and virtual items. Subject to your continued ownership
+        of the corresponding NFT, WardrobeForge grants you a worldwide, non-exclusive, royalty-free license
+        to display, copy, and use the associated artwork (a) for personal, non-commercial purposes, and (b) for commercial
         use generating less than one hundred thousand U.S. dollars (USD $100,000) in gross revenue per year.
       </p>
 
       <h2>6. PROHIBITED CONDUCT</h2>
       <ul>
-        <li>You shall not mint, replicate, or distribute counterfeit Digital Twins.</li>
+        <li>You shall not mint, replicate, or distribute unauthorized NFTs or virtual items purporting to originate from WardrobeForge.</li>
         <li>You shall not use the Services to engage in money laundering, sanctioned activity, or any unlawful purpose.</li>
         <li>You shall not attempt to interfere with the integrity of the randomness function or the on-chain mint pipeline.</li>
         <li>You shall not scrape, mirror, or rebuild the Services in a manner that creates a competing product.</li>

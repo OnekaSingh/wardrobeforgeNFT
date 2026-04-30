@@ -49,6 +49,13 @@ const POINTS_BY_RARITY = {
   Legendary: 250,
 };
 
+const RARITY_PYRAMID_TARGETS = {
+  Common: 0.45,
+  Rare: 0.30,
+  Epic: 0.17,
+  Legendary: 0.08,
+};
+
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
@@ -316,6 +323,95 @@ function classifyRarity(metrics, finish, colorStat) {
   return 'Common';
 }
 
+function scoreRarity(metrics, finish, colorStat) {
+  let score = 0;
+
+  score += metrics.uniqueQuantizedColorCount * 0.45;
+  score += metrics.hueSpread * 1.2;
+  score += metrics.brightRatio * 160;
+  score += metrics.averageSaturation * 35;
+  score += metrics.contrast * 80;
+  score += metrics.edgeDensity * 0.12;
+
+  if (finish === 'Metallic threading') score += 140;
+  else if (finish === 'Reflective') score += 90;
+  else if (finish === 'Glossy') score += 35;
+
+  if (colorStat.startsWith('Gradient')) score += 35;
+  else if (colorStat.startsWith('Pattern')) score += 25;
+
+  return Math.round(score * 100) / 100;
+}
+
+function buildPyramidCounts(total) {
+  if (total <= 0) {
+    return { Common: 0, Rare: 0, Epic: 0, Legendary: 0 };
+  }
+
+  const counts = {
+    Legendary: Math.max(1, Math.round(total * RARITY_PYRAMID_TARGETS.Legendary)),
+    Epic: Math.max(1, Math.round(total * RARITY_PYRAMID_TARGETS.Epic)),
+    Rare: Math.max(1, Math.round(total * RARITY_PYRAMID_TARGETS.Rare)),
+  };
+
+  counts.Common = total - counts.Legendary - counts.Epic - counts.Rare;
+
+  while (counts.Common <= counts.Rare) {
+    if (counts.Rare > counts.Epic + 1) counts.Rare -= 1;
+    else if (counts.Epic > counts.Legendary + 1) counts.Epic -= 1;
+    else if (counts.Legendary > 1) counts.Legendary -= 1;
+    counts.Common = total - counts.Legendary - counts.Epic - counts.Rare;
+  }
+
+  while (counts.Rare <= counts.Epic) {
+    if (counts.Epic > counts.Legendary + 1) counts.Epic -= 1;
+    else if (counts.Legendary > 1) counts.Legendary -= 1;
+    else counts.Rare += 1;
+    counts.Common = total - counts.Legendary - counts.Epic - counts.Rare;
+  }
+
+  while (counts.Epic <= counts.Legendary) {
+    if (counts.Legendary > 1) counts.Legendary -= 1;
+    else counts.Epic += 1;
+    counts.Common = total - counts.Legendary - counts.Epic - counts.Rare;
+  }
+
+  return counts;
+}
+
+function applyRarityPyramid(entries) {
+  const sorted = [...entries].sort((a, b) => {
+    if (b.__rarityScore !== a.__rarityScore) return b.__rarityScore - a.__rarityScore;
+    return a.__number - b.__number;
+  });
+  const counts = buildPyramidCounts(sorted.length);
+  let index = 0;
+
+  for (const rarity of ['Legendary', 'Epic', 'Rare', 'Common']) {
+    const end = index + counts[rarity];
+    for (let i = index; i < end; i += 1) {
+      sorted[i].rarity = rarity;
+    }
+    index = end;
+  }
+
+  return entries.map(entry => {
+    const mint = classifyMint(entry.__inventoryMetrics, entry.finish, entry.rarity);
+    const finalEntry = {
+      ...entry,
+      mint,
+      serial: buildSerial(entry.__number, entry.rarity),
+      lore: buildLore(entry.fabric, entry.fit, entry.finish, entry.color, mint),
+      pointsBonus: POINTS_BY_RARITY[entry.rarity],
+    };
+
+    delete finalEntry.__inventoryMetrics;
+    delete finalEntry.__number;
+    delete finalEntry.__rarityScore;
+    return finalEntry;
+  });
+}
+
 function classifyMint(metrics, finish, rarity) {
   if (rarity === 'Legendary') return 'Legendary';
   if (finish === 'Distressed' || metrics.darkRatio > 0.3) return 'Vintage';
@@ -359,8 +455,6 @@ function buildOutfitEntry(fileName) {
   const finish = classifyFinish(inventoryMetrics, color);
   const fabric = classifyFabric(inventoryMetrics, color, finish);
   const fit = classifyFit(inventoryMetrics);
-  const rarity = classifyRarity(inventoryMetrics, finish, color);
-  const mint = classifyMint(inventoryMetrics, finish, rarity);
   const inventoryTarget = path.join(TARGET_OUTFIT_INVENTORY_DIR, fileName);
   const avatarTarget = path.join(TARGET_OUTFIT_AVATAR_DIR, fileName);
 
@@ -376,11 +470,7 @@ function buildOutfitEntry(fileName) {
     fit,
     finish,
     color,
-    mint,
-    rarity,
-    serial: buildSerial(number, rarity),
-    lore: buildLore(fabric, fit, finish, color, mint),
-    pointsBonus: POINTS_BY_RARITY[rarity],
+    rarity: classifyRarity(inventoryMetrics, finish, color),
     owned: true,
     inventorySrc: `assets/outfits/inventory/${fileName}?v=1`,
     avatarSrc: `assets/outfits/avatar/${fileName}?v=1`,
@@ -388,6 +478,9 @@ function buildOutfitEntry(fileName) {
     inventoryHeight: inventoryMetrics.height,
     avatarWidth: avatarMetrics.width,
     avatarHeight: avatarMetrics.height,
+    __inventoryMetrics: inventoryMetrics,
+    __number: number,
+    __rarityScore: scoreRarity(inventoryMetrics, finish, color),
   };
 }
 
@@ -402,8 +495,6 @@ function buildBootsEntry(fileName) {
   const finish = classifyFinish(inventoryMetrics, color);
   const fabric = classifyFabric(inventoryMetrics, color, finish);
   const fit = classifyFit(inventoryMetrics);
-  const rarity = classifyRarity(inventoryMetrics, finish, color);
-  const mint = classifyMint(inventoryMetrics, finish, rarity);
   const inventoryTarget = path.join(TARGET_BOOTS_INVENTORY_DIR, fileName);
   const avatarTarget = path.join(TARGET_BOOTS_AVATAR_DIR, fileName);
 
@@ -419,11 +510,7 @@ function buildBootsEntry(fileName) {
     fit,
     finish,
     color,
-    mint,
-    rarity,
-    serial: buildSerial(number, rarity),
-    lore: `Footwear relic tuned in ${fabric.toLowerCase()}, cut ${fit.toLowerCase()}, finished in ${finish.toLowerCase()}, with a ${mint.toLowerCase()} ${color.toLowerCase()} signature.`,
-    pointsBonus: POINTS_BY_RARITY[rarity],
+    rarity: classifyRarity(inventoryMetrics, finish, color),
     owned: true,
     inventorySrc: `assets/boots/inventory/${fileName}?v=1`,
     avatarSrc: `assets/boots/avatar/${fileName}?v=1`,
@@ -431,6 +518,9 @@ function buildBootsEntry(fileName) {
     inventoryHeight: inventoryMetrics.height,
     avatarWidth: avatarMetrics.width,
     avatarHeight: avatarMetrics.height,
+    __inventoryMetrics: inventoryMetrics,
+    __number: number,
+    __rarityScore: scoreRarity(inventoryMetrics, finish, color),
   };
 }
 
@@ -445,8 +535,6 @@ function buildHeadEntry(fileName) {
   const finish = classifyFinish(inventoryMetrics, color);
   const fabric = classifyFabric(inventoryMetrics, color, finish);
   const fit = classifyFit(inventoryMetrics);
-  const rarity = classifyRarity(inventoryMetrics, finish, color);
-  const mint = classifyMint(inventoryMetrics, finish, rarity);
   const inventoryTarget = path.join(TARGET_HEADS_INVENTORY_DIR, fileName);
   const avatarTarget = path.join(TARGET_HEADS_AVATAR_DIR, fileName);
 
@@ -462,11 +550,7 @@ function buildHeadEntry(fileName) {
     fit,
     finish,
     color,
-    mint,
-    rarity,
-    serial: buildSerial(number, rarity),
-    lore: `Headwear relic rendered in ${fabric.toLowerCase()}, shaped ${fit.toLowerCase()}, finished in ${finish.toLowerCase()}, with a ${mint.toLowerCase()} ${color.toLowerCase()} signature.`,
-    pointsBonus: POINTS_BY_RARITY[rarity],
+    rarity: classifyRarity(inventoryMetrics, finish, color),
     owned: true,
     inventorySrc: `assets/heads/inventory/${fileName}?v=1`,
     avatarSrc: `assets/heads/avatar/${fileName}?v=1`,
@@ -474,6 +558,9 @@ function buildHeadEntry(fileName) {
     inventoryHeight: inventoryMetrics.height,
     avatarWidth: avatarMetrics.width,
     avatarHeight: avatarMetrics.height,
+    __inventoryMetrics: inventoryMetrics,
+    __number: number,
+    __rarityScore: scoreRarity(inventoryMetrics, finish, color),
   };
 }
 
@@ -486,8 +573,6 @@ function buildItemEntry(fileName) {
   const finish = classifyFinish(inventoryMetrics, color);
   const fabric = classifyFabric(inventoryMetrics, color, finish);
   const fit = classifyFit(inventoryMetrics);
-  const rarity = classifyRarity(inventoryMetrics, finish, color);
-  const mint = classifyMint(inventoryMetrics, finish, rarity);
   const inventoryTarget = path.join(TARGET_ITEMS_INVENTORY_DIR, fileName);
 
   fs.copyFileSync(inventorySource, inventoryTarget);
@@ -501,11 +586,7 @@ function buildItemEntry(fileName) {
     fit,
     finish,
     color,
-    mint,
-    rarity,
-    serial: buildSerial(number, rarity),
-    lore: `Accessory relic cast in ${fabric.toLowerCase()}, shaped ${fit.toLowerCase()}, finished in ${finish.toLowerCase()}, carrying a ${mint.toLowerCase()} ${color.toLowerCase()} signature.`,
-    pointsBonus: POINTS_BY_RARITY[rarity],
+    rarity: classifyRarity(inventoryMetrics, finish, color),
     owned: true,
     inventorySrc: `assets/items/inventory/${fileName}?v=1`,
     avatarSrc: `assets/items/inventory/${fileName}?v=1`,
@@ -513,6 +594,9 @@ function buildItemEntry(fileName) {
     inventoryHeight: inventoryMetrics.height,
     avatarWidth: inventoryMetrics.width,
     avatarHeight: inventoryMetrics.height,
+    __inventoryMetrics: inventoryMetrics,
+    __number: number,
+    __rarityScore: scoreRarity(inventoryMetrics, finish, color),
   };
 }
 
@@ -538,10 +622,22 @@ function main() {
     .filter(name => name.endsWith('.png'))
     .sort((a, b) => filenameNumber(a) - filenameNumber(b));
 
-  const generatedOutfits = outfitFileNames.map(buildOutfitEntry);
-  const generatedBoots = bootsFileNames.map(buildBootsEntry);
-  const generatedHeads = headFileNames.map(buildHeadEntry);
-  const generatedItems = itemFileNames.map(buildItemEntry);
+  const generatedOutfits = applyRarityPyramid(outfitFileNames.map(buildOutfitEntry)).map(entry => ({
+    ...entry,
+    lore: `Outfit relic woven in ${entry.fabric.toLowerCase()}, cut ${entry.fit.toLowerCase()}, finished in ${entry.finish.toLowerCase()}, carrying a ${entry.mint.toLowerCase()} ${entry.color.toLowerCase()} signature.`,
+  }));
+  const generatedBoots = applyRarityPyramid(bootsFileNames.map(buildBootsEntry)).map(entry => ({
+    ...entry,
+    lore: `Footwear relic tuned in ${entry.fabric.toLowerCase()}, cut ${entry.fit.toLowerCase()}, finished in ${entry.finish.toLowerCase()}, with a ${entry.mint.toLowerCase()} ${entry.color.toLowerCase()} signature.`,
+  }));
+  const generatedHeads = applyRarityPyramid(headFileNames.map(buildHeadEntry)).map(entry => ({
+    ...entry,
+    lore: `Headwear relic rendered in ${entry.fabric.toLowerCase()}, shaped ${entry.fit.toLowerCase()}, finished in ${entry.finish.toLowerCase()}, with a ${entry.mint.toLowerCase()} ${entry.color.toLowerCase()} signature.`,
+  }));
+  const generatedItems = applyRarityPyramid(itemFileNames.map(buildItemEntry)).map(entry => ({
+    ...entry,
+    lore: `Accessory relic cast in ${entry.fabric.toLowerCase()}, shaped ${entry.fit.toLowerCase()}, finished in ${entry.finish.toLowerCase()}, carrying a ${entry.mint.toLowerCase()} ${entry.color.toLowerCase()} signature.`,
+  }));
   const outfitMap = Object.fromEntries(generatedOutfits.map(item => [item.art, item]));
   const bootsMap = Object.fromEntries(generatedBoots.map(item => [item.art, item]));
   const headsMap = Object.fromEntries(generatedHeads.map(item => [item.art, item]));

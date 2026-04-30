@@ -98,8 +98,8 @@ const SKIN_TONES = {
   light:     { mid: '#FCDEBD', shadow: '#E9C49B' },
   warm:      { mid: '#F9CD9C', shadow: '#E0AE76' },
   tan:       { mid: '#D4AD81', shadow: '#A88254' },
-  deep:      { mid: '#6E4A22', shadow: '#4A2F12' },
-  lavender:  { mid: '#D4B8FF', shadow: '#B89EE0' },
+  deep:      { mid: '#6E4A22', shadow: '#4A2F12', border: '#1E1205' },
+  rich:      { mid: '#472F14', shadow: '#2F1D0B', border: '#1E1205' },
 };
 
 const EYE_COLORS = {
