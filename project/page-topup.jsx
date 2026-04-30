@@ -10,8 +10,41 @@ const TOP_UP_PACKAGES = [
 ];
 
 const TOP_UP_CUSTOM_RATE = 1.99 / 100;
+const TOP_UP_PENDING_REWARD_STORAGE_KEY = 'wardrobeforge-pending-square-reward-v1';
 
 const formatUsd = (amount) => `$${amount.toFixed(2)}`;
+
+const getPendingRewardStorageKey = (userId) => `${TOP_UP_PENDING_REWARD_STORAGE_KEY}:${userId || 'guest'}`;
+
+const readPendingReward = (userId) => {
+  try {
+    const raw = window.localStorage.getItem(getPendingRewardStorageKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const writePendingReward = (userId, reward) => {
+  const storageKey = getPendingRewardStorageKey(userId);
+  if (!reward) {
+    window.localStorage.removeItem(storageKey);
+    return;
+  }
+  window.localStorage.setItem(storageKey, JSON.stringify(reward));
+};
+
+const rollBonusItemArt = (ownedArtIds) => {
+  const itemPool = (window.BROWSABLE_NFT_LIBRARY || window.NFT_LIBRARY || []).filter((item) => item.slot === 'item');
+  if (!itemPool.length) return null;
+
+  const unownedPool = itemPool.filter((item) => !ownedArtIds.has(item.art));
+  const sourcePool = unownedPool.length ? unownedPool : itemPool;
+  const randomIndex = Math.floor(Math.random() * sourcePool.length);
+  return sourcePool[randomIndex]?.art || null;
+};
 
 const TopUpCard = ({ pack, onClaim, busy, onOpenCustom }) => (
   <div className={`pxl-box topup-card ${pack.custom ? 'topup-card-custom' : ''}`}>
@@ -38,25 +71,77 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
   const [status, setStatus] = React.useState('');
   const [busyPackId, setBusyPackId] = React.useState('');
   const [isCustomOpen, setIsCustomOpen] = React.useState(false);
+  const [pendingReward, setPendingReward] = React.useState(() => readPendingReward(currentUser?.id || null));
+  const ownedArtIds = React.useMemo(() => new Set(accountSnapshot.ownedArtIds || []), [accountSnapshot.ownedArtIds]);
   const customPrice = Number((customTokens * TOP_UP_CUSTOM_RATE).toFixed(2));
+  const pendingRewardItem = React.useMemo(
+    () => (pendingReward?.bonusArt ? (window.NFT_LIBRARY || []).find((item) => item.art === pendingReward.bonusArt) || null : null),
+    [pendingReward],
+  );
+
+  React.useEffect(() => {
+    setPendingReward(readPendingReward(currentUser?.id || null));
+  }, [currentUser?.id]);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const squareStatus = params.get('square_status');
     const tokens = Number(params.get('tokens'));
+    const claimId = String(params.get('claim') || '').trim();
 
-    if (squareStatus === 'success') {
-      const tokenLabel = Number.isFinite(tokens) && tokens > 0 ? `${tokens.toLocaleString()} tokens` : 'your top-up';
-      setStatus(`Square checkout completed for ${tokenLabel}. Payment collection is now live, but token delivery still needs a trusted webhook/backend confirmation step before balances can be credited automatically.`);
+    if (squareStatus === 'success' && currentUser?.id && Number.isFinite(tokens) && tokens > 0 && claimId) {
+      const existingPendingReward = readPendingReward(currentUser.id);
+      const nextPendingReward = existingPendingReward?.claimId === claimId
+        ? existingPendingReward
+        : {
+            claimId,
+            tokens,
+            bonusArt: rollBonusItemArt(ownedArtIds),
+            createdAt: new Date().toISOString(),
+          };
+
+      writePendingReward(currentUser.id, nextPendingReward);
+      setPendingReward(nextPendingReward);
+      const tokenLabel = `${tokens.toLocaleString()} VTO`;
+      const itemName = nextPendingReward?.bonusArt
+        ? ((window.NFT_LIBRARY || []).find((item) => item.art === nextPendingReward.bonusArt)?.name || 'Mystery item')
+        : 'Mystery item';
+      setStatus(`Square payment returned successfully. Claim ${tokenLabel} and your free ${itemName}.`);
 
       params.delete('square_status');
       params.delete('pack');
       params.delete('tokens');
+      params.delete('claim');
       const nextSearch = params.toString();
       const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || '#topup'}`;
       window.history.replaceState({}, document.title, nextUrl);
     }
-  }, []);
+  }, [currentUser?.id, ownedArtIds]);
+
+  const handleClaimReward = () => {
+    if (!currentUser?.id || !pendingReward) return;
+
+    try {
+      const claimResult = window.WardrobeForgeAuth?.redeemSquareTopUpReward?.({
+        userId: currentUser.id,
+        claimId: pendingReward.claimId,
+        tokens: pendingReward.tokens,
+        bonusArt: pendingReward.bonusArt,
+      });
+
+      if (claimResult?.alreadyClaimed) {
+        setStatus('That Square top-up reward was already claimed on this account.');
+      } else {
+        const itemName = pendingRewardItem?.name || 'Mystery item';
+        setStatus(`Thank you! You claimed ${pendingReward.tokens.toLocaleString()} VTO and ${itemName}.`);
+      }
+
+      writePendingReward(currentUser.id, null);
+      setPendingReward(null);
+    } catch (error) {
+      setStatus(error.message || 'Could not claim your Square reward right now.');
+    }
+  };
 
   const handleTopUp = async ({ packId, amount, custom = false }) => {
     if (!currentUser) {
@@ -130,7 +215,7 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
       <div className="pxl-box" style={{ background: '#fff', padding: 24, marginTop: 28 }}>
         <div className="pixel" style={{ fontSize: 14, marginBottom: 10 }}>TOP-UP NOTES</div>
         <div className="mono" style={{ fontSize: 19, lineHeight: 1.5 }}>
-          {status || 'Square checkout is now wired through a secure server route. Top-up buttons send buyers to a real Square-hosted payment page, while automatic token delivery still needs a verified post-payment backend step.'}
+          {status || 'Top-up buttons send you to a real Square-hosted payment page. This page should never credit VTO locally; balance updates must come from a verified backend payment confirmation.'}
         </div>
         {!currentUser && (
           <div style={{ marginTop: 18 }}>
@@ -188,6 +273,54 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
 
               <button className="pxl-btn topup-custom-cta" onClick={() => handleTopUp({ packId: 'topup-custom', amount: customTokens, custom: true })}>
                 {busyPackId === 'topup-custom' ? 'CONNECTING...' : 'TOP UP CUSTOM'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingReward && (
+        <div className="topup-modal-backdrop" onClick={() => {}}>
+          <div className="topup-modal-shell" onClick={(event) => event.stopPropagation()}>
+            <div className="pxl-box topup-custom-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 16 }}>
+                <div>
+                  <div className="chip coral" style={{ marginBottom: 12 }}>THANK YOU</div>
+                  <div className="pixel" style={{ fontSize: 20, marginBottom: 10 }}>YOUR SQUARE REWARD IS READY</div>
+                </div>
+              </div>
+
+              <p className="mono" style={{ fontSize: 20, lineHeight: 1.45, opacity: .82, marginBottom: 18 }}>
+                You got <span className="pixel" style={{ color: 'var(--coral)' }}>{pendingReward.tokens.toLocaleString()} VTO</span>
+                {' '}and a free random NFT item.
+              </p>
+
+              <div className="topup-custom-metrics" style={{ marginBottom: 18 }}>
+                <div>
+                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 6 }}>VTO AMOUNT</div>
+                  <div className="pixel" style={{ fontSize: 18 }}>{pendingReward.tokens.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 6 }}>FREE ITEM</div>
+                  <div className="pixel" style={{ fontSize: 12 }}>{pendingRewardItem?.name || 'Mystery item'}</div>
+                </div>
+              </div>
+
+              {pendingRewardItem && (
+                <div className="topup-custom-preview" style={{ height: 220, marginBottom: 18 }}>
+                  <div style={{ width: 140, height: 140, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img
+                      className="topup-card-image"
+                      src={pendingRewardItem.inventorySrc}
+                      alt={pendingRewardItem.name}
+                      style={{ margin: 0, maxHeight: 140 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button className="pxl-btn topup-custom-cta" onClick={handleClaimReward}>
+                CLAIM
               </button>
             </div>
           </div>

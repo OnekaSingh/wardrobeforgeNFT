@@ -4,6 +4,7 @@ const AUTH_ACCOUNTS_STORAGE_KEY = 'wardrobeforge-auth-accounts-v1';
 const AUTH_SESSION_STORAGE_KEY = 'wardrobeforge-auth-session-v2';
 const AUTH_CHANGE_EVENT = 'wardrobeforge-auth-change';
 const AUTH_VTO_GRANT_KEY = 'wardrobeforge-vto-grant-100-v2';
+const AUTH_TOPUP_REWARD_CLAIM_KEY = 'wardrobeforge-topup-reward-claim-v1';
 const AUTH_BACKEND_URL_STORAGE_KEY = 'wardrobeforge-backend-url';
 const AUTH_LOCAL_CREDENTIALS_STORAGE_KEY = 'wardrobeforge-auth-local-credentials-v1';
 const AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY = 'wardrobeforge-auth-local-verification-codes-v1';
@@ -556,6 +557,20 @@ const getCurrentToken = () => trimValue(readStoredSession()?.token);
 
 const getPerUserFlagKey = (baseKey, userId) => `${baseKey}:${userId}`;
 
+const hasClaimedTopUpReward = (userId, claimId) => {
+  const cleanUserId = trimValue(userId);
+  const cleanClaimId = trimValue(claimId);
+  if (!cleanUserId || !cleanClaimId) return false;
+  return window.localStorage.getItem(getPerUserFlagKey(`${AUTH_TOPUP_REWARD_CLAIM_KEY}:${cleanClaimId}`, cleanUserId)) === '1';
+};
+
+const markTopUpRewardClaimed = (userId, claimId) => {
+  const cleanUserId = trimValue(userId);
+  const cleanClaimId = trimValue(claimId);
+  if (!cleanUserId || !cleanClaimId) return;
+  window.localStorage.setItem(getPerUserFlagKey(`${AUTH_TOPUP_REWARD_CLAIM_KEY}:${cleanClaimId}`, cleanUserId), '1');
+};
+
 const applyOneTimeVtoGrant = () => {
   try {
     const sessionUser = getCurrentUser();
@@ -747,16 +762,20 @@ const logOut = () => {
 };
 
 const addVtoBalance = ({ userId, amount }) => {
-  const nextAccount = updateStoredAccount(userId, (account) => ({
-    ...account,
-    vtoBalance: getUserBalanceValue(account) + Math.max(0, Number(amount) || 0),
-  }));
+  const currentSnapshot = getAccountSnapshot(userId);
+  const safeAmount = Math.max(0, Number(amount) || 0);
+
+  console.warn(
+    `Blocked client-side VTO balance credit of ${safeAmount} for ${trimValue(userId) || 'guest'}. ` +
+    'Top-ups must come from a verified Square payment confirmation on the backend.',
+  );
 
   return {
-    balance: getUserBalanceValue(nextAccount),
-    xp: getUserXpValue(nextAccount),
-    ownedArtIds: getUserOwnedArtIdsValue(nextAccount),
-    itemStars: getUserItemStarsValue(nextAccount),
+    balance: currentSnapshot.balance,
+    xp: currentSnapshot.xp,
+    ownedArtIds: currentSnapshot.ownedArtIds,
+    itemStars: currentSnapshot.itemStars,
+    authenticityCodes: currentSnapshot.authenticityCodes,
   };
 };
 
@@ -798,6 +817,68 @@ const spendVtoAndGrantItem = ({ userId, cost, artId, xpAmount = 0 }) => {
     itemStars: getUserItemStarsValue(nextAccount),
     authenticityCodes: getUserAuthenticityCodesValue(nextAccount),
     grantedAuthenticityCode,
+  };
+};
+
+const redeemSquareTopUpReward = ({ userId, claimId, tokens, bonusArt = null }) => {
+  const cleanUserId = trimValue(userId);
+  const cleanClaimId = trimValue(claimId);
+  const tokenAmount = Math.max(0, Number(tokens) || 0);
+
+  if (!cleanUserId) {
+    throw new Error('Missing account for top-up reward.');
+  }
+
+  if (!cleanClaimId) {
+    throw new Error('Missing Square claim reference.');
+  }
+
+  if (tokenAmount <= 0) {
+    throw new Error('Top-up reward did not include any VTO.');
+  }
+
+  if (hasClaimedTopUpReward(cleanUserId, cleanClaimId)) {
+    return {
+      alreadyClaimed: true,
+      claimId: cleanClaimId,
+      ...getAccountSnapshot(cleanUserId),
+    };
+  }
+
+  const nextAccount = updateStoredAccount(cleanUserId, (account) => {
+    const ownedArtIds = new Set(getUserOwnedArtIdsValue(account));
+    const itemStars = { ...getUserItemStarsValue(account) };
+    const authenticityCodes = { ...getUserAuthenticityCodesValue(account) };
+
+    if (bonusArt) {
+      const alreadyOwned = ownedArtIds.has(bonusArt);
+      ownedArtIds.add(bonusArt);
+      itemStars[bonusArt] = alreadyOwned ? Math.min(3, (itemStars[bonusArt] || 1) + 1) : 1;
+      if (!authenticityCodes[bonusArt]) {
+        authenticityCodes[bonusArt] = createAuthenticityCode(new Set(Object.values(authenticityCodes)));
+      }
+    }
+
+    return {
+      ...account,
+      vtoBalance: getUserBalanceValue(account) + tokenAmount,
+      ownedArtIds: [...ownedArtIds],
+      itemStars,
+      authenticityCodes,
+    };
+  });
+
+  markTopUpRewardClaimed(cleanUserId, cleanClaimId);
+
+  return {
+    alreadyClaimed: false,
+    claimId: cleanClaimId,
+    grantedAuthenticityCode: bonusArt ? getUserAuthenticityCodesValue(nextAccount)[bonusArt] || '' : '',
+    balance: getUserBalanceValue(nextAccount),
+    xp: getUserXpValue(nextAccount),
+    ownedArtIds: getUserOwnedArtIdsValue(nextAccount),
+    itemStars: getUserItemStarsValue(nextAccount),
+    authenticityCodes: getUserAuthenticityCodesValue(nextAccount),
   };
 };
 
@@ -1088,6 +1169,7 @@ window.WardrobeForgeAuth = {
   logIn,
   logOut,
   readStoredAccounts,
+  redeemSquareTopUpReward,
   refreshSession,
   sendVerificationCode,
   setBackendBaseUrl,
