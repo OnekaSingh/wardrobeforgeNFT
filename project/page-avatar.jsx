@@ -735,6 +735,31 @@ const HEAD_OVERLAY_EXTRA_Y = {
   'head-25': 40,
 };
 
+const AVATAR_BASE_SRC = 'clear_avatar.webp?v=2';
+const decodedImageCache = new Map();
+const opaqueBoundsCache = new WeakMap();
+
+const loadCachedImage = (src) => {
+  if (!src) return Promise.resolve(null);
+
+  const cached = decodedImageCache.get(src);
+  if (cached) return cached;
+
+  const pending = new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => resolve(image);
+    image.onerror = () => {
+      decodedImageCache.delete(src);
+      reject(new Error(`Failed to load avatar layer: ${src}`));
+    };
+    image.src = src;
+  });
+
+  decodedImageCache.set(src, pending);
+  return pending;
+};
+
 const drawBottomAlignedImage = (ctx, image, alignBottomY) => {
   const sourceWidth = image.naturalWidth || image.width;
   const sourceHeight = image.naturalHeight || image.height;
@@ -746,6 +771,9 @@ const drawBottomAlignedImage = (ctx, image, alignBottomY) => {
 };
 
 const getOpaqueBounds = (image) => {
+  const cachedBounds = opaqueBoundsCache.get(image);
+  if (cachedBounds) return cachedBounds;
+
   const sourceWidth = image.naturalWidth || image.width;
   const sourceHeight = image.naturalHeight || image.height;
   const probeCanvas = document.createElement('canvas');
@@ -771,16 +799,17 @@ const getOpaqueBounds = (image) => {
     }
   }
 
-  if (maxX < minX || maxY < minY) {
-    return { x: 0, y: 0, width: sourceWidth, height: sourceHeight };
-  }
-
-  return {
+  const bounds = maxX < minX || maxY < minY
+    ? { x: 0, y: 0, width: sourceWidth, height: sourceHeight }
+    : {
     x: minX,
     y: minY,
     width: maxX - minX + 1,
     height: maxY - minY + 1,
   };
+
+  opaqueBoundsCache.set(image, bounds);
+  return bounds;
 };
 
 const drawHandheldItem = (ctx, image) => {
@@ -817,135 +846,87 @@ const AvatarImageWithEyeOverlay = ({ skin = 'light', eye = 'brown', hair = null,
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const isCurrentDraw = () => drawRequestRef.current === drawRequestId;
-    const continueIfCurrent = (nextStep) => {
-      if (!isCurrentDraw()) return;
-      nextStep();
-    };
+    const drawLayers = async () => {
+      const [baseImg, itemImg, bootsImg, hairImg, outfitImg, earImg, headImg] = await Promise.all([
+        loadCachedImage(AVATAR_BASE_SRC),
+        loadCachedImage(imageItem?.avatarSrc).catch(() => null),
+        loadCachedImage(imageBoots?.avatarSrc).catch(() => null),
+        loadCachedImage(hairStyleSrc).catch(() => null),
+        loadCachedImage(imageOutfit?.avatarSrc).catch(() => null),
+        loadCachedImage(earOverlaySrc).catch(() => null),
+        loadCachedImage(imageHead?.avatarSrc).catch(() => null),
+      ]);
 
-    const drawHeadOverlay = () => {
-      if (!imageHead?.avatarSrc) return;
-      const headImg = new Image();
-      headImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        drawBottomAlignedImage(ctx, headImg, HEAD_OVERLAY_BOTTOM_Y + (HEAD_OVERLAY_EXTRA_Y[head] || 0));
-      };
-      headImg.onerror = () => {};
-      headImg.src = imageHead.avatarSrc;
-    };
+      if (!isCurrentDraw() || !baseImg) return;
 
-    const drawEarOverlay = () => {
-      if (!earOverlaySrc) {
-        drawHeadOverlay();
-        return;
+      const composedCanvas = document.createElement('canvas');
+      composedCanvas.width = AVATAR_SOURCE_WIDTH;
+      composedCanvas.height = AVATAR_SOURCE_HEIGHT + CANVAS_TOP_PADDING;
+      const composedCtx = composedCanvas.getContext('2d');
+
+      composedCtx.clearRect(0, 0, composedCanvas.width, composedCanvas.height);
+      composedCtx.drawImage(baseImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+
+      applySkinToneByRegion(composedCtx, skinTone);
+
+      if (eye !== 'brown') {
+        const imageData = composedCtx.getImageData(0, 0, composedCanvas.width, composedCanvas.height);
+        const leftRegion = { x1: 410, y1: 370 + CANVAS_TOP_PADDING, x2: 560, y2: 510 + CANVAS_TOP_PADDING };
+        const rightRegion = { x1: 720, y1: 370 + CANVAS_TOP_PADDING, x2: 905, y2: 510 + CANVAS_TOP_PADDING };
+        if (eye === 'hetero') {
+          applyEyeColorByRegion(imageData.data, composedCanvas.width, [leftRegion], '#833303');
+          applyEyeColorByRegion(imageData.data, composedCanvas.width, [rightRegion], '#333CE0');
+        } else if (eye === 'gradient') {
+          applyEyeGradientByRegion(imageData.data, composedCanvas.width, [leftRegion, rightRegion], '#F85646', '#DCC7C7');
+        } else {
+          applyEyeColorByRegion(imageData.data, composedCanvas.width, [leftRegion, rightRegion], irisColor);
+        }
+        composedCtx.putImageData(imageData, 0, 0);
       }
-      const earImg = new Image();
-      earImg.onload = () => {
-        if (!isCurrentDraw()) return;
+
+      if (itemImg) {
+        drawHandheldItem(composedCtx, itemImg);
+      }
+
+      if (bootsImg) {
+        composedCtx.drawImage(bootsImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+      }
+
+      if (hairImg && hairStyle) {
+        const drawW = hairStyle.drawW || 950;
+        const drawH = HAIR_SOURCE_HEIGHT * (drawW / HAIR_SOURCE_WIDTH);
+        const x = (AVATAR_SOURCE_WIDTH - drawW) / 2 - 10 + (hairStyle.offsetX || 0);
+        const y = CANVAS_TOP_PADDING - 60 + (hairStyle.offsetY || 0);
+        composedCtx.drawImage(hairImg, x, y, drawW, drawH);
+      }
+
+      if (outfitImg) {
+        composedCtx.drawImage(outfitImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+      }
+
+      if (earImg) {
         const sourceWidth = earImg.naturalWidth || earImg.width;
         const sourceHeight = earImg.naturalHeight || earImg.height;
         const drawWidth = sourceWidth * EAR_OVERLAY_SCALE;
         const drawHeight = sourceHeight * EAR_OVERLAY_SCALE;
         const drawX = EAR_OVERLAY_X - ((drawWidth - sourceWidth) / 2);
         const drawY = EAR_OVERLAY_Y - ((drawHeight - sourceHeight) / 2);
-        ctx.drawImage(earImg, 0, 0, sourceWidth, sourceHeight, drawX, drawY, drawWidth, drawHeight);
-        drawHeadOverlay();
-      };
-      earImg.onerror = () => continueIfCurrent(drawHeadOverlay);
-      earImg.src = earOverlaySrc;
-    };
-
-    const drawOutfitOverlay = () => {
-      if (!imageOutfit?.avatarSrc) {
-        drawEarOverlay();
-        return;
+        composedCtx.drawImage(earImg, 0, 0, sourceWidth, sourceHeight, drawX, drawY, drawWidth, drawHeight);
       }
-      const outfitImg = new Image();
-      outfitImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        ctx.drawImage(outfitImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
-        drawEarOverlay();
-      };
-      outfitImg.onerror = () => continueIfCurrent(drawEarOverlay);
-      outfitImg.src = imageOutfit.avatarSrc;
-    };
 
-    const drawHairOnTop = () => {
-      if (!hairStyle) {
-        drawOutfitOverlay();
-        return;
+      if (headImg) {
+        drawBottomAlignedImage(composedCtx, headImg, HEAD_OVERLAY_BOTTOM_Y + (HEAD_OVERLAY_EXTRA_Y[head] || 0));
       }
-      const hairImg = new Image();
-      hairImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        const drawW = hairStyle.drawW || 950;
-        const drawH = HAIR_SOURCE_HEIGHT * (drawW / HAIR_SOURCE_WIDTH);
-        const x = (AVATAR_SOURCE_WIDTH - drawW) / 2 - 10 + (hairStyle.offsetX || 0);
-        const y = CANVAS_TOP_PADDING - 60 + (hairStyle.offsetY || 0);
-        ctx.drawImage(hairImg, x, y, drawW, drawH);
-        drawOutfitOverlay();
-      };
-      hairImg.onerror = () => continueIfCurrent(drawOutfitOverlay);
-      hairImg.src = hairStyleSrc;
-    };
 
-    const drawBootsOverlay = () => {
-      if (!imageBoots?.avatarSrc) {
-        drawHairOnTop();
-        return;
-      }
-      const bootsImg = new Image();
-      bootsImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        ctx.drawImage(bootsImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
-        drawHairOnTop();
-      };
-      bootsImg.onerror = () => continueIfCurrent(drawHairOnTop);
-      bootsImg.src = imageBoots.avatarSrc;
-    };
-
-    const drawItemOverlay = () => {
-      if (!imageItem?.avatarSrc) {
-        drawBootsOverlay();
-        return;
-      }
-      const itemImg = new Image();
-      itemImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        drawHandheldItem(ctx, itemImg);
-        drawBootsOverlay();
-      };
-      itemImg.onerror = () => continueIfCurrent(drawBootsOverlay);
-      itemImg.src = imageItem.avatarSrc;
-    };
-
-    const img = new Image();
-    img.onload = () => {
       if (!isCurrentDraw()) return;
-      canvas.width = AVATAR_SOURCE_WIDTH;
-      canvas.height = AVATAR_SOURCE_HEIGHT + CANVAS_TOP_PADDING;
+
+      if (canvas.width !== composedCanvas.width) canvas.width = composedCanvas.width;
+      if (canvas.height !== composedCanvas.height) canvas.height = composedCanvas.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
-
-      applySkinToneByRegion(ctx, skinTone);
-
-      if (eye !== 'brown') {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const leftRegion = { x1: 410, y1: 370 + CANVAS_TOP_PADDING, x2: 560, y2: 510 + CANVAS_TOP_PADDING };
-        const rightRegion = { x1: 720, y1: 370 + CANVAS_TOP_PADDING, x2: 905, y2: 510 + CANVAS_TOP_PADDING };
-        if (eye === 'hetero') {
-          applyEyeColorByRegion(imageData.data, canvas.width, [leftRegion], '#833303');
-          applyEyeColorByRegion(imageData.data, canvas.width, [rightRegion], '#333CE0');
-        } else if (eye === 'gradient') {
-          applyEyeGradientByRegion(imageData.data, canvas.width, [leftRegion, rightRegion], '#F85646', '#DCC7C7');
-        } else {
-          applyEyeColorByRegion(imageData.data, canvas.width, [leftRegion, rightRegion], irisColor);
-        }
-        ctx.putImageData(imageData, 0, 0);
-      }
-
-      drawItemOverlay();
+      ctx.drawImage(composedCanvas, 0, 0);
     };
-    img.src = 'clear_avatar.webp?v=2';
+
+    drawLayers().catch(() => {});
   }, [boots, earOverlaySrc, eye, hairStyle, hairStyleSrc, head, imageBoots, imageHead, imageItem, imageOutfit, irisColor, item, outfit, skinTone]);
 
   React.useEffect(() => {

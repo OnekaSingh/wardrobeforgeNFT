@@ -139,7 +139,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     }, 950);
   };
 
-  const handleOpenCrate = (crate) => {
+  const handleOpenCrate = async (crate) => {
     if (!currentUser) {
       if (openAuthModal) openAuthModal();
       return;
@@ -161,7 +161,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     if (!rolledItem) return;
 
     try {
-      const grantResult = window.WardrobeForgeAuth?.spendVtoAndGrantItem?.({
+      const grantResult = await window.WardrobeForgeAuth?.spendVtoAndGrantItem?.({
         userId: currentUser.id,
         cost: crate.priceVto,
         artId: rolledItem.art,

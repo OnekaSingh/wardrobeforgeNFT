@@ -130,11 +130,11 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
     }
   }, [currentUser?.id, ownedArtIds]);
 
-  const handleClaimReward = () => {
+  const handleClaimReward = async () => {
     if (!currentUser?.id || !pendingReward) return;
 
     try {
-      const claimResult = window.WardrobeForgeAuth?.redeemSquareTopUpReward?.({
+      const claimResult = await window.WardrobeForgeAuth?.redeemSquareTopUpReward?.({
         userId: currentUser.id,
         claimId: pendingReward.claimId,
         tokens: pendingReward.tokens,
