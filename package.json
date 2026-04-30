@@ -1,7 +1,13 @@
 {
+  "scripts": {
+    "optimize-images": "node scripts/optimize-images.cjs"
+  },
   "dependencies": {
     "@playwright/test": "^1.59.1",
     "pngjs": "^7.0.0",
     "replicate": "^1.4.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }

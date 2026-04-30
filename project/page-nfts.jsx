@@ -139,7 +139,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     }, 950);
   };
 
-  const handleOpenCrate = (crate) => {
+  const handleOpenCrate = async (crate) => {
     if (!currentUser) {
       if (openAuthModal) openAuthModal();
       return;
@@ -161,7 +161,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     if (!rolledItem) return;
 
     try {
-      const grantResult = window.WardrobeForgeAuth?.spendVtoAndGrantItem?.({
+      const grantResult = await window.WardrobeForgeAuth?.spendVtoAndGrantItem?.({
         userId: currentUser.id,
         cost: crate.priceVto,
         artId: rolledItem.art,
@@ -196,7 +196,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
           <div className="vto-balance-actions">
             <span className="vto-balance-badge">
               <span className="chip">VTO BALANCE</span>
-              <img className="vto-token-icon" src="assets/token.png" alt="VTO token" />
+              <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
               <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{accountSnapshot.balance.toLocaleString()}</span>
             </span>
             <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
@@ -219,7 +219,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                 onClick={() => setSelectedCrateId(crate.id)}
               >
                 <div className="crate-image-wrap">
-                  <img className="crate-image" src="assets/crates/pixel-crate.png" alt={crate.name} />
+                  <img className="crate-image" src="assets/crates/pixel-crate.webp" alt={crate.name} loading="lazy" decoding="async" />
                 </div>
                 <div className="pixel" style={{ fontSize: 11, marginBottom: 6 }}>{crate.name}</div>
                 <div className="mono" style={{ fontSize: 18, opacity: .72, marginBottom: 10 }}>{crate.priceVto} VTO</div>
@@ -236,7 +236,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
             <div className="split crate-detail-split">
               <div className={`crate-detail-hero crate-${selectedCrate.tone}`}>
                 <div className="crate-detail-image-stack">
-                  <img className="crate-image crate-image-large float" src="assets/crates/pixel-crate.png" alt={selectedCrate.name} />
+                  <img className="crate-image crate-image-large float" src="assets/crates/pixel-crate.webp" alt={selectedCrate.name} decoding="async" />
                 </div>
                 <div className="crate-detail-open-wrap">
                   <button className="pxl-btn crate-open-btn crate-open-btn-hero" onClick={() => handleOpenCrate(selectedCrate)}>OPEN FOR 100 VTO</button>
@@ -352,7 +352,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                     <div className="pixel" style={{ fontSize: 10, color: 'var(--pink-neon)', marginBottom: 8 }}>STAR POWER</div>
                     <div className="star-power-icons" aria-label={`${selectedItemStars} star power`}>
                       {Array.from({ length: selectedItemStars }, (_, index) => (
-                        <img key={`${selected.art}-star-${index}`} className="star-power-icon" src="assets/star.png" alt="" />
+                        <img key={`${selected.art}-star-${index}`} className="star-power-icon" src="assets/star.webp" alt="" loading="lazy" decoding="async" />
                       ))}
                     </div>
                   </div>
@@ -421,7 +421,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
 
                 {crateModalState.status !== 'revealed' && (
                   <div className={`crate-open-stage ${crateModalState.status === 'shaking' ? 'shake' : 'float'}`} onClick={crateModalState.status === 'preview' ? triggerCrateReveal : undefined}>
-                    <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.png" alt={modalCrate.name} />
+                    <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
                   </div>
                 )}
 

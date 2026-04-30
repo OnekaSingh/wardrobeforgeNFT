@@ -108,6 +108,42 @@ const PrivacyPage = () => (
   </div>
 );
 
+const ContactPage = () => (
+  <div className="page">
+    <div className="legal contact-page pxl-box">
+      <h1>CONTACT</h1>
+      <div className="meta">WARDROBEFORGE SUPPORT · GENERAL INQUIRIES · RESPONSE CHANNELS</div>
+
+      <hr className="pxl-hr" />
+
+      <p>
+        Need to reach WardrobeForge? Use the contact details below for direct support, billing questions,
+        partnership conversations, or general account help.
+      </p>
+
+      <div className="contact-grid">
+        <div className="contact-card">
+          <h2>EMAIL</h2>
+          <p><a href="mailto:info@wardrobeforge.com">info@wardrobeforge.com</a></p>
+        </div>
+
+        <div className="contact-card">
+          <h2>PHONE</h2>
+          <p><a href="tel:+16066719009">+1 (606) 671-9009</a></p>
+        </div>
+      </div>
+
+      <h2>GENERAL INQUIRIES</h2>
+      <p>For general inquiries, please use our contact form here:</p>
+      <p>
+        <a href="https://wardrobeforge.com/contact" target="_blank" rel="noreferrer">
+          https://wardrobeforge.com/contact
+        </a>
+      </p>
+    </div>
+  </div>
+);
+
 const TermsPage = () => (
   <div className="page">
     <div className="legal pxl-box">
@@ -209,5 +245,6 @@ const TermsPage = () => (
   </div>
 );
 
+window.ContactPage = ContactPage;
 window.PrivacyPage = PrivacyPage;
 window.TermsPage = TermsPage;

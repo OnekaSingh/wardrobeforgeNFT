@@ -4,6 +4,7 @@ const AUTH_ACCOUNTS_STORAGE_KEY = 'wardrobeforge-auth-accounts-v1';
 const AUTH_SESSION_STORAGE_KEY = 'wardrobeforge-auth-session-v2';
 const AUTH_CHANGE_EVENT = 'wardrobeforge-auth-change';
 const AUTH_VTO_GRANT_KEY = 'wardrobeforge-vto-grant-100-v2';
+const AUTH_TOPUP_REWARD_CLAIM_KEY = 'wardrobeforge-topup-reward-claim-v1';
 const AUTH_BACKEND_URL_STORAGE_KEY = 'wardrobeforge-backend-url';
 const AUTH_LOCAL_CREDENTIALS_STORAGE_KEY = 'wardrobeforge-auth-local-credentials-v1';
 const AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY = 'wardrobeforge-auth-local-verification-codes-v1';
@@ -74,6 +75,8 @@ const sanitizeUser = (user) => {
     : null;
 };
 
+const isAccountLike = (value) => value && typeof value === 'object';
+
 const readStoredAccounts = () => {
   try {
     const raw = window.localStorage.getItem(AUTH_ACCOUNTS_STORAGE_KEY);
@@ -87,6 +90,44 @@ const readStoredAccounts = () => {
 
 const writeStoredAccounts = (accounts) => {
   window.localStorage.setItem(AUTH_ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+};
+
+const writeSingleStoredAccount = (user, accountSource = null) => {
+  const normalizedUser = normalizeUser(user);
+  if (!normalizedUser) return null;
+
+  const accounts = readStoredAccounts();
+  const matchingIndex = accounts.findIndex((entry) => entry && entry.id === normalizedUser.id);
+  const legacyEmailIndex = matchingIndex < 0
+    ? accounts.findIndex((entry) => normalizeEmail(entry?.email) === normalizedUser.email)
+    : -1;
+  const sourceIndex = matchingIndex >= 0 ? matchingIndex : legacyEmailIndex;
+  const existingAccount = sourceIndex >= 0 ? accounts[sourceIndex] : null;
+  const sourceAccount = {
+    ...(isAccountLike(existingAccount) ? existingAccount : {}),
+    ...(isAccountLike(accountSource) ? accountSource : {}),
+  };
+
+  const nextAccount = {
+    id: normalizedUser.id,
+    username: normalizedUser.username,
+    displayName: normalizedUser.displayName,
+    email: normalizedUser.email,
+    createdAt: sourceAccount?.createdAt || normalizedUser.createdAt,
+    ownedArtIds: getUserOwnedArtIdsValue(sourceAccount),
+    itemStars: getUserItemStarsValue(sourceAccount),
+    authenticityCodes: getUserAuthenticityCodesValue(sourceAccount),
+    vtoBalance: getUserBalanceValue(sourceAccount),
+    xp: getUserXpValue(sourceAccount),
+  };
+
+  const nextAccounts = [
+    nextAccount,
+    ...accounts.filter((entry, index) => index !== matchingIndex && index !== legacyEmailIndex),
+  ];
+
+  writeStoredAccounts(nextAccounts);
+  return nextAccount;
 };
 
 const readLocalCredentials = () => {
@@ -231,37 +272,7 @@ const dispatchAuthChange = (user) => {
 };
 
 const upsertLocalAccountState = (user) => {
-  const normalizedUser = normalizeUser(user);
-  if (!normalizedUser) return null;
-
-  const accounts = readStoredAccounts();
-  const matchingIndex = accounts.findIndex((entry) => entry && entry.id === normalizedUser.id);
-  const legacyEmailIndex = matchingIndex < 0
-    ? accounts.findIndex((entry) => normalizeEmail(entry?.email) === normalizedUser.email)
-    : -1;
-  const sourceIndex = matchingIndex >= 0 ? matchingIndex : legacyEmailIndex;
-  const sourceAccount = sourceIndex >= 0 ? accounts[sourceIndex] : null;
-
-  const nextAccount = {
-    id: normalizedUser.id,
-    username: normalizedUser.username,
-    displayName: normalizedUser.displayName,
-    email: normalizedUser.email,
-    createdAt: sourceAccount?.createdAt || normalizedUser.createdAt,
-    ownedArtIds: getUserOwnedArtIdsValue(sourceAccount),
-    itemStars: getUserItemStarsValue(sourceAccount),
-    authenticityCodes: getUserAuthenticityCodesValue(sourceAccount),
-    vtoBalance: getUserBalanceValue(sourceAccount),
-    xp: getUserXpValue(sourceAccount),
-  };
-
-  const nextAccounts = [
-    nextAccount,
-    ...accounts.filter((entry, index) => index !== matchingIndex && index !== legacyEmailIndex),
-  ];
-
-  writeStoredAccounts(nextAccounts);
-  return nextAccount;
+  return writeSingleStoredAccount(user, user);
 };
 
 const getAccountById = (userId) => {
@@ -552,9 +563,124 @@ const appApiRequest = async (path, { method = 'GET', body = null } = {}) => {
   return payload;
 };
 
+const syncStoredAccountSnapshot = (userId, snapshot) => {
+  const cleanUserId = trimValue(userId);
+  if (!cleanUserId || !snapshot || typeof snapshot !== 'object') return null;
+
+  const currentUser = getCurrentUser();
+  const accountUser = cleanUserId === currentUser?.id ? currentUser : getAccountById(cleanUserId);
+  const normalizedUser = normalizeUser(accountUser);
+  if (!normalizedUser) return null;
+
+  const nextAccount = writeSingleStoredAccount(normalizedUser, {
+    ...snapshot,
+    ownedArtIds: snapshot.ownedArtIds,
+    itemStars: snapshot.itemStars,
+    authenticityCodes: snapshot.authenticityCodes,
+    vtoBalance: snapshot.balance,
+    xp: snapshot.xp,
+  });
+
+  if (currentUser?.id === cleanUserId) {
+    dispatchAuthChange(sanitizeUser(currentUser));
+  }
+
+  return nextAccount;
+};
+
+const syncAccountFromBackend = async (userId = null, token = null) => {
+  const cleanToken = trimValue(token || getCurrentToken());
+  const cleanUserId = trimValue(userId || getCurrentUser()?.id);
+  if (!cleanUserId || !cleanToken || isLocalSessionToken(cleanToken)) {
+    return getAccountSnapshot(cleanUserId || null);
+  }
+
+  const snapshot = await apiRequest('/account/me', { token: cleanToken });
+  syncStoredAccountSnapshot(cleanUserId, snapshot);
+  return snapshot;
+};
+
+const normalizeAvatarLoadout = (loadout, fallback = {}) => ({
+  head: trimValue(loadout?.head) || fallback.head || null,
+  outfit: trimValue(loadout?.outfit) || fallback.outfit || null,
+  item: trimValue(loadout?.item) || fallback.item || null,
+  boots: trimValue(loadout?.boots) || fallback.boots || null,
+});
+
+const normalizeSavedLooks = (savedLooks) => (
+  Array.isArray(savedLooks)
+    ? savedLooks
+      .filter((entry) => entry && typeof entry.imageSrc === 'string')
+      .map((entry) => ({
+        id: trimValue(entry.id) || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        imageSrc: entry.imageSrc,
+      }))
+      .slice(0, 24)
+    : []
+);
+
+const getAvatarState = async ({ userId, fallbackLoadout, fallbackSavedLooks = [] }) => {
+  const token = getCurrentToken();
+  const cleanUserId = trimValue(userId);
+  if (!cleanUserId || !token || isLocalSessionToken(token)) {
+    return {
+      equipped: normalizeAvatarLoadout(fallbackLoadout, fallbackLoadout),
+      savedLooks: normalizeSavedLooks(fallbackSavedLooks),
+    };
+  }
+
+  const result = await apiRequest('/account/avatar-state', { token });
+  return {
+    equipped: normalizeAvatarLoadout(result?.equipped, fallbackLoadout),
+    savedLooks: normalizeSavedLooks(result?.savedLooks),
+  };
+};
+
+const saveAvatarState = async ({ userId, equipped, savedLooks }) => {
+  const token = getCurrentToken();
+  const cleanUserId = trimValue(userId);
+  const normalizedEquipped = normalizeAvatarLoadout(equipped, {});
+  const normalizedSavedLooks = normalizeSavedLooks(savedLooks);
+
+  if (!cleanUserId || !token || isLocalSessionToken(token)) {
+    return {
+      equipped: normalizedEquipped,
+      savedLooks: normalizedSavedLooks,
+    };
+  }
+
+  const result = await apiRequest('/account/avatar-state', {
+    method: 'PUT',
+    token,
+    body: {
+      equipped: normalizedEquipped,
+      savedLooks: normalizedSavedLooks,
+    },
+  });
+
+  return {
+    equipped: normalizeAvatarLoadout(result?.equipped, normalizedEquipped),
+    savedLooks: normalizeSavedLooks(result?.savedLooks),
+  };
+};
+
 const getCurrentToken = () => trimValue(readStoredSession()?.token);
 
 const getPerUserFlagKey = (baseKey, userId) => `${baseKey}:${userId}`;
+
+const hasClaimedTopUpReward = (userId, claimId) => {
+  const cleanUserId = trimValue(userId);
+  const cleanClaimId = trimValue(claimId);
+  if (!cleanUserId || !cleanClaimId) return false;
+  return window.localStorage.getItem(getPerUserFlagKey(`${AUTH_TOPUP_REWARD_CLAIM_KEY}:${cleanClaimId}`, cleanUserId)) === '1';
+};
+
+const markTopUpRewardClaimed = (userId, claimId) => {
+  const cleanUserId = trimValue(userId);
+  const cleanClaimId = trimValue(claimId);
+  if (!cleanUserId || !cleanClaimId) return;
+  window.localStorage.setItem(getPerUserFlagKey(`${AUTH_TOPUP_REWARD_CLAIM_KEY}:${cleanClaimId}`, cleanUserId), '1');
+};
 
 const applyOneTimeVtoGrant = () => {
   try {
@@ -582,14 +708,15 @@ const setCurrentUser = (sessionData) => {
     return null;
   }
 
-  const user = sanitizeUser(sessionData.user || sessionData);
+  const rawUser = sessionData.user || sessionData;
+  const user = sanitizeUser(rawUser);
   const token = trimValue(sessionData.token || sessionData.access_token);
 
   if (!user || !token) {
     throw new Error('Missing session data from backend.');
   }
 
-  upsertLocalAccountState(user);
+  upsertLocalAccountState(rawUser);
   window.localStorage.setItem(
     AUTH_SESSION_STORAGE_KEY,
     JSON.stringify({
@@ -664,10 +791,12 @@ const signUp = async ({ displayName, email, password, verificationCode, agreeToT
       },
     });
 
-    return setCurrentUser({
+    const user = setCurrentUser({
       token: result?.access_token,
       user: result?.user,
     });
+    await syncAccountFromBackend(user?.id, result?.access_token).catch(() => {});
+    return user;
   } catch (error) {
     if (!shouldUseLocalAuthFallback(error)) throw error;
     return signUpLocally({
@@ -701,10 +830,12 @@ const logIn = async ({ email, password }) => {
       },
     });
 
-    return setCurrentUser({
+    const user = setCurrentUser({
       token: result?.access_token,
       user: result?.user,
     });
+    await syncAccountFromBackend(user?.id, result?.access_token).catch(() => {});
+    return user;
   } catch (error) {
     if (!shouldUseLocalAuthFallback(error)) throw error;
     return logInLocally({ email: identifier, password: cleanPassword });
@@ -723,15 +854,17 @@ const refreshSession = async () => {
   }
 
   try {
-    const user = await apiRequest('/auth/me', {
+    const backendUser = await apiRequest('/auth/me', {
       token: session.token,
     });
 
-    return setCurrentUser({
+    const user = setCurrentUser({
       token: session.token,
-      user,
+      user: backendUser,
       loggedInAt: session.loggedInAt,
     });
+    await syncAccountFromBackend(user?.id, session.token).catch(() => {});
+    return user;
   } catch (error) {
     if (error?.status === 401) {
       logOut();
@@ -747,20 +880,39 @@ const logOut = () => {
 };
 
 const addVtoBalance = ({ userId, amount }) => {
-  const nextAccount = updateStoredAccount(userId, (account) => ({
-    ...account,
-    vtoBalance: getUserBalanceValue(account) + Math.max(0, Number(amount) || 0),
-  }));
+  const currentSnapshot = getAccountSnapshot(userId);
+  const safeAmount = Math.max(0, Number(amount) || 0);
+
+  console.warn(
+    `Blocked client-side VTO balance credit of ${safeAmount} for ${trimValue(userId) || 'guest'}. ` +
+    'Top-ups must come from a verified Square payment confirmation on the backend.',
+  );
 
   return {
-    balance: getUserBalanceValue(nextAccount),
-    xp: getUserXpValue(nextAccount),
-    ownedArtIds: getUserOwnedArtIdsValue(nextAccount),
-    itemStars: getUserItemStarsValue(nextAccount),
+    balance: currentSnapshot.balance,
+    xp: currentSnapshot.xp,
+    ownedArtIds: currentSnapshot.ownedArtIds,
+    itemStars: currentSnapshot.itemStars,
+    authenticityCodes: currentSnapshot.authenticityCodes,
   };
 };
 
-const spendVtoAndGrantItem = ({ userId, cost, artId, xpAmount = 0 }) => {
+const spendVtoAndGrantItem = async ({ userId, cost, artId, xpAmount = 0 }) => {
+  const token = getCurrentToken();
+  if (token && !isLocalSessionToken(token)) {
+    const result = await apiRequest('/account/spend-vto-and-grant-item', {
+      method: 'POST',
+      token,
+      body: {
+        cost,
+        artId,
+        xpAmount,
+      },
+    });
+    syncStoredAccountSnapshot(userId, result);
+    return result;
+  }
+
   let grantedAuthenticityCode = '';
   const nextAccount = updateStoredAccount(userId, (account) => {
     const balance = getUserBalanceValue(account);
@@ -798,6 +950,88 @@ const spendVtoAndGrantItem = ({ userId, cost, artId, xpAmount = 0 }) => {
     itemStars: getUserItemStarsValue(nextAccount),
     authenticityCodes: getUserAuthenticityCodesValue(nextAccount),
     grantedAuthenticityCode,
+  };
+};
+
+const redeemSquareTopUpReward = async ({ userId, claimId, tokens, bonusArt = null }) => {
+  const cleanUserId = trimValue(userId);
+  const cleanClaimId = trimValue(claimId);
+  const tokenAmount = Math.max(0, Number(tokens) || 0);
+
+  if (!cleanUserId) {
+    throw new Error('Missing account for top-up reward.');
+  }
+
+  if (!cleanClaimId) {
+    throw new Error('Missing Square claim reference.');
+  }
+
+  if (tokenAmount <= 0) {
+    throw new Error('Top-up reward did not include any VTO.');
+  }
+
+  const token = getCurrentToken();
+  if (token && !isLocalSessionToken(token)) {
+    const result = await apiRequest('/account/redeem-topup', {
+      method: 'POST',
+      token,
+      body: {
+        claimId: cleanClaimId,
+        tokens: tokenAmount,
+        bonusArt,
+      },
+    });
+    syncStoredAccountSnapshot(cleanUserId, result);
+    if (result?.alreadyClaimed) {
+      markTopUpRewardClaimed(cleanUserId, cleanClaimId);
+    } else {
+      markTopUpRewardClaimed(cleanUserId, cleanClaimId);
+    }
+    return result;
+  }
+
+  if (hasClaimedTopUpReward(cleanUserId, cleanClaimId)) {
+    return {
+      alreadyClaimed: true,
+      claimId: cleanClaimId,
+      ...getAccountSnapshot(cleanUserId),
+    };
+  }
+
+  const nextAccount = updateStoredAccount(cleanUserId, (account) => {
+    const ownedArtIds = new Set(getUserOwnedArtIdsValue(account));
+    const itemStars = { ...getUserItemStarsValue(account) };
+    const authenticityCodes = { ...getUserAuthenticityCodesValue(account) };
+
+    if (bonusArt) {
+      const alreadyOwned = ownedArtIds.has(bonusArt);
+      ownedArtIds.add(bonusArt);
+      itemStars[bonusArt] = alreadyOwned ? Math.min(3, (itemStars[bonusArt] || 1) + 1) : 1;
+      if (!authenticityCodes[bonusArt]) {
+        authenticityCodes[bonusArt] = createAuthenticityCode(new Set(Object.values(authenticityCodes)));
+      }
+    }
+
+    return {
+      ...account,
+      vtoBalance: getUserBalanceValue(account) + tokenAmount,
+      ownedArtIds: [...ownedArtIds],
+      itemStars,
+      authenticityCodes,
+    };
+  });
+
+  markTopUpRewardClaimed(cleanUserId, cleanClaimId);
+
+  return {
+    alreadyClaimed: false,
+    claimId: cleanClaimId,
+    grantedAuthenticityCode: bonusArt ? getUserAuthenticityCodesValue(nextAccount)[bonusArt] || '' : '',
+    balance: getUserBalanceValue(nextAccount),
+    xp: getUserXpValue(nextAccount),
+    ownedArtIds: getUserOwnedArtIdsValue(nextAccount),
+    itemStars: getUserItemStarsValue(nextAccount),
+    authenticityCodes: getUserAuthenticityCodesValue(nextAccount),
   };
 };
 
@@ -1088,12 +1322,15 @@ window.WardrobeForgeAuth = {
   logIn,
   logOut,
   readStoredAccounts,
+  redeemSquareTopUpReward,
   refreshSession,
+  saveAvatarState,
   sendVerificationCode,
   setBackendBaseUrl,
   setCurrentUser,
   signUp,
   spendVtoAndGrantItem,
+  getAvatarState,
   updateStoredAccount,
 };
 

@@ -3,27 +3,27 @@
 const HAIRSTYLE_ASSET_BASE = 'hairstyles';
 
 const HAIRSTYLES = [
-  { id: 'hair-1', imageName: '1.png', thumb: 'hairstyle_props/4.png', name: 'Style 1', offsetX: -12, offsetY: 0 },
-  { id: 'hair-2', imageName: '2.png', thumb: 'hairstyle_props/3.png', name: 'Style 2', offsetX: -40, offsetY: 0 },
-  { id: 'hair-3', imageName: '3.png', thumb: 'hairstyle_props/6.png', name: 'Style 3', offsetX: 18, offsetY: -12 },
-  { id: 'hair-4', imageName: '4.png', thumb: 'hairstyle_props/5.png', name: 'Style 4', offsetX: 18, offsetY: -78, drawW: 1080 },
-  { id: 'hair-5', imageName: '5.png', thumb: 'hairstyle_props/1.png', name: 'Style 5', offsetX: 6, offsetY: -18 },
-  { id: 'hair-6', imageName: '6.png', thumb: 'hairstyle_props/2.png', name: 'Style 6', offsetX: 18, offsetY: -18 },
+  { id: 'hair-1', imageName: '1.webp', thumb: 'hairstyle_props/4.webp', name: 'Style 1', offsetX: -12, offsetY: 0 },
+  { id: 'hair-2', imageName: '2.webp', thumb: 'hairstyle_props/3.webp', name: 'Style 2', offsetX: -40, offsetY: 0 },
+  { id: 'hair-3', imageName: '3.webp', thumb: 'hairstyle_props/6.webp', name: 'Style 3', offsetX: 18, offsetY: -12 },
+  { id: 'hair-4', imageName: '4.webp', thumb: 'hairstyle_props/5.webp', name: 'Style 4', offsetX: 18, offsetY: -78, drawW: 1080 },
+  { id: 'hair-5', imageName: '5.webp', thumb: 'hairstyle_props/1.webp', name: 'Style 5', offsetX: 6, offsetY: -18 },
+  { id: 'hair-6', imageName: '6.webp', thumb: 'hairstyle_props/2.webp', name: 'Style 6', offsetX: 18, offsetY: -18 },
 ];
 
 const HAIR_COLORS = [
-  { id: 'black', name: 'Black', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/black.png` },
-  { id: 'brown', name: 'Brown', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/brown.png` },
-  { id: 'blonde', name: 'Blonde', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blonde.png` },
-  { id: 'red', name: 'Red', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/red.png` },
-  { id: 'pink', name: 'Pink', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/pink.png` },
-  { id: 'purple', name: 'Purple', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/purple.png` },
-  { id: 'blue', name: 'Blue', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blue.png` },
-  { id: 'cyan', name: 'Cyan', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cyan.png` },
-  { id: 'aqua', name: 'Aqua', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/aqua.png` },
-  { id: 'green', name: 'Green', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/green.png` },
-  { id: 'cosmo', name: 'Cosmo', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cosmo.png` },
-  { id: 'fade', name: 'Fade', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/fade.png` },
+  { id: 'black', name: 'Black', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/black.webp` },
+  { id: 'brown', name: 'Brown', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/brown.webp` },
+  { id: 'blonde', name: 'Blonde', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blonde.webp` },
+  { id: 'red', name: 'Red', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/red.webp` },
+  { id: 'pink', name: 'Pink', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/pink.webp` },
+  { id: 'purple', name: 'Purple', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/purple.webp` },
+  { id: 'blue', name: 'Blue', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blue.webp` },
+  { id: 'cyan', name: 'Cyan', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cyan.webp` },
+  { id: 'aqua', name: 'Aqua', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/aqua.webp` },
+  { id: 'green', name: 'Green', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/green.webp` },
+  { id: 'cosmo', name: 'Cosmo', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cosmo.webp` },
+  { id: 'fade', name: 'Fade', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/fade.webp` },
 ];
 
 const getHairstyleColorSrc = (hairstyle, hairColor) => (
@@ -31,12 +31,12 @@ const getHairstyleColorSrc = (hairstyle, hairColor) => (
 );
 
 const EAR_OVERLAY_BY_SKIN = {
-  porcelain: 'hairstyles/ears_1.png',
-  light: 'hairstyles/ears_2.png',
-  warm: 'hairstyles/ears_3.png',
-  tan: 'hairstyles/ears_4.png',
-  deep: 'hairstyles/ears_5.png',
-  rich: 'hairstyles/ears_6.png',
+  porcelain: 'hairstyles/ears_1.webp',
+  light: 'hairstyles/ears_2.webp',
+  warm: 'hairstyles/ears_3.webp',
+  tan: 'hairstyles/ears_4.webp',
+  deep: 'hairstyles/ears_5.webp',
+  rich: 'hairstyles/ears_6.webp',
 };
 
 const AVATAR_LOADOUT_STORAGE_KEY = 'wardrobeforge-avatar-loadout-v1';
@@ -164,6 +164,8 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
   const [openAuthenticityArtId, setOpenAuthenticityArtId] = useState(null);
   const avatarCanvasRef = React.useRef(null);
   const [savedLooks, setSavedLooks] = useState(() => readSavedLooks(savedLooksStorageKey));
+  const [avatarStateLoaded, setAvatarStateLoaded] = React.useState(() => !currentUser?.id);
+  const avatarSyncTimeoutRef = React.useRef(null);
 
   const ownedNFTs = NFT_LIBRARY.filter(n => ownedArtIds.has(n.art));
   const slotItems = ownedNFTs
@@ -187,9 +189,39 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
   }, [equipped, loadoutStorageKey]);
 
   React.useEffect(() => {
-    setEquipped(readEquippedLoadout(loadoutStorageKey, fallbackLoadout, sanitizeEquippedArt));
-    setSavedLooks(readSavedLooks(savedLooksStorageKey));
-  }, [fallbackLoadout, loadoutStorageKey, sanitizeEquippedArt, savedLooksStorageKey]);
+    let cancelled = false;
+    const localEquipped = readEquippedLoadout(loadoutStorageKey, fallbackLoadout, sanitizeEquippedArt);
+    const localSavedLooks = readSavedLooks(savedLooksStorageKey);
+
+    setEquipped(localEquipped);
+    setSavedLooks(localSavedLooks);
+    setAvatarStateLoaded(!currentUser?.id);
+
+    if (!currentUser?.id) return () => {};
+
+    window.WardrobeForgeAuth?.getAvatarState?.({
+      userId: currentUser.id,
+      fallbackLoadout: localEquipped,
+      fallbackSavedLooks: localSavedLooks,
+    }).then((avatarState) => {
+      if (cancelled || !avatarState) return;
+      setEquipped({
+        head: sanitizeEquippedArt(avatarState.equipped?.head, fallbackLoadout.head),
+        outfit: sanitizeEquippedArt(avatarState.equipped?.outfit, fallbackLoadout.outfit),
+        item: sanitizeEquippedArt(avatarState.equipped?.item, fallbackLoadout.item),
+        boots: sanitizeEquippedArt(avatarState.equipped?.boots, fallbackLoadout.boots),
+      });
+      setSavedLooks(Array.isArray(avatarState.savedLooks) ? avatarState.savedLooks : []);
+      setAvatarStateLoaded(true);
+    }).catch(() => {
+      if (cancelled) return;
+      setAvatarStateLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, fallbackLoadout, loadoutStorageKey, sanitizeEquippedArt, savedLooksStorageKey]);
 
   React.useEffect(() => {
     const persistedLooks = persistSavedLooks(savedLooksStorageKey, savedLooks);
@@ -197,6 +229,29 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
       setSavedLooks(persistedLooks);
     }
   }, [savedLooks, savedLooksStorageKey]);
+
+  React.useEffect(() => {
+    if (!currentUser?.id || !avatarStateLoaded) return () => {};
+
+    if (avatarSyncTimeoutRef.current) {
+      window.clearTimeout(avatarSyncTimeoutRef.current);
+    }
+
+    avatarSyncTimeoutRef.current = window.setTimeout(() => {
+      window.WardrobeForgeAuth?.saveAvatarState?.({
+        userId: currentUser.id,
+        equipped,
+        savedLooks,
+      }).catch(() => {});
+    }, 250);
+
+    return () => {
+      if (avatarSyncTimeoutRef.current) {
+        window.clearTimeout(avatarSyncTimeoutRef.current);
+        avatarSyncTimeoutRef.current = null;
+      }
+    };
+  }, [avatarStateLoaded, currentUser?.id, equipped, savedLooks]);
 
   React.useEffect(() => {
     if (!equipRequest?.art || !equipRequest?.slot) return;
@@ -251,14 +306,16 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
         <h1 className="pixel" style={{ fontSize: 26 }}>MY AVATAR</h1>
         <span className="mono" style={{ fontSize: 20, opacity: .6 }}>// dress your chibi. earn your points.</span>
-        <div className="vto-balance-actions">
-          <span className="vto-balance-badge">
-            <span className="chip">VTO POINTS</span>
-            <img className="vto-token-icon" src="assets/token.png" alt="VTO token" />
-            <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{totalPoints.toLocaleString()}</span>
-          </span>
-          <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
-        </div>
+        {currentUser && (
+          <div className="vto-balance-actions">
+            <span className="vto-balance-badge">
+              <span className="chip">VTO POINTS</span>
+              <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
+              <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{totalPoints.toLocaleString()}</span>
+            </span>
+            <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
+          </div>
+        )}
       </div>
 
       <div className="avatar-page-grid">
@@ -443,6 +500,8 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
                     <img
                       src={look.imageSrc}
                       alt={`Saved look ${savedLooks.length - index}`}
+                      loading="lazy"
+                      decoding="async"
                       style={{ width: '100%', height: 'auto', display: 'block', imageRendering: 'pixelated' }}
                     />
                   </div>
@@ -545,6 +604,8 @@ const SkinEyeSelectors = ({ skin, eye, hair, hairColor, setSkin, setEye, setHair
             <img
               src={h.thumb}
               alt={h.name}
+              loading="lazy"
+              decoding="async"
               style={{ width: '132%', height: '132%', objectFit: 'contain', imageRendering: 'pixelated' }}
             />
           </button>
@@ -594,6 +655,8 @@ const GearInventoryArt = ({ id, size = 96 }) => {
     <img
       src={gear.inventorySrc}
       alt={gear.name || id}
+      loading="lazy"
+      decoding="async"
       style={{
         width: '100%',
         height: '100%',
@@ -727,6 +790,31 @@ const HEAD_OVERLAY_EXTRA_Y = {
   'head-25': 40,
 };
 
+const AVATAR_BASE_SRC = 'clear_avatar.webp?v=2';
+const decodedImageCache = new Map();
+const opaqueBoundsCache = new WeakMap();
+
+const loadCachedImage = (src) => {
+  if (!src) return Promise.resolve(null);
+
+  const cached = decodedImageCache.get(src);
+  if (cached) return cached;
+
+  const pending = new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => resolve(image);
+    image.onerror = () => {
+      decodedImageCache.delete(src);
+      reject(new Error(`Failed to load avatar layer: ${src}`));
+    };
+    image.src = src;
+  });
+
+  decodedImageCache.set(src, pending);
+  return pending;
+};
+
 const drawBottomAlignedImage = (ctx, image, alignBottomY) => {
   const sourceWidth = image.naturalWidth || image.width;
   const sourceHeight = image.naturalHeight || image.height;
@@ -738,6 +826,9 @@ const drawBottomAlignedImage = (ctx, image, alignBottomY) => {
 };
 
 const getOpaqueBounds = (image) => {
+  const cachedBounds = opaqueBoundsCache.get(image);
+  if (cachedBounds) return cachedBounds;
+
   const sourceWidth = image.naturalWidth || image.width;
   const sourceHeight = image.naturalHeight || image.height;
   const probeCanvas = document.createElement('canvas');
@@ -763,16 +854,17 @@ const getOpaqueBounds = (image) => {
     }
   }
 
-  if (maxX < minX || maxY < minY) {
-    return { x: 0, y: 0, width: sourceWidth, height: sourceHeight };
-  }
-
-  return {
+  const bounds = maxX < minX || maxY < minY
+    ? { x: 0, y: 0, width: sourceWidth, height: sourceHeight }
+    : {
     x: minX,
     y: minY,
     width: maxX - minX + 1,
     height: maxY - minY + 1,
   };
+
+  opaqueBoundsCache.set(image, bounds);
+  return bounds;
 };
 
 const drawHandheldItem = (ctx, image) => {
@@ -809,135 +901,87 @@ const AvatarImageWithEyeOverlay = ({ skin = 'light', eye = 'brown', hair = null,
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const isCurrentDraw = () => drawRequestRef.current === drawRequestId;
-    const continueIfCurrent = (nextStep) => {
-      if (!isCurrentDraw()) return;
-      nextStep();
-    };
+    const drawLayers = async () => {
+      const [baseImg, itemImg, bootsImg, hairImg, outfitImg, earImg, headImg] = await Promise.all([
+        loadCachedImage(AVATAR_BASE_SRC),
+        loadCachedImage(imageItem?.avatarSrc).catch(() => null),
+        loadCachedImage(imageBoots?.avatarSrc).catch(() => null),
+        loadCachedImage(hairStyleSrc).catch(() => null),
+        loadCachedImage(imageOutfit?.avatarSrc).catch(() => null),
+        loadCachedImage(earOverlaySrc).catch(() => null),
+        loadCachedImage(imageHead?.avatarSrc).catch(() => null),
+      ]);
 
-    const drawHeadOverlay = () => {
-      if (!imageHead?.avatarSrc) return;
-      const headImg = new Image();
-      headImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        drawBottomAlignedImage(ctx, headImg, HEAD_OVERLAY_BOTTOM_Y + (HEAD_OVERLAY_EXTRA_Y[head] || 0));
-      };
-      headImg.onerror = () => {};
-      headImg.src = imageHead.avatarSrc;
-    };
+      if (!isCurrentDraw() || !baseImg) return;
 
-    const drawEarOverlay = () => {
-      if (!earOverlaySrc) {
-        drawHeadOverlay();
-        return;
+      const composedCanvas = document.createElement('canvas');
+      composedCanvas.width = AVATAR_SOURCE_WIDTH;
+      composedCanvas.height = AVATAR_SOURCE_HEIGHT + CANVAS_TOP_PADDING;
+      const composedCtx = composedCanvas.getContext('2d');
+
+      composedCtx.clearRect(0, 0, composedCanvas.width, composedCanvas.height);
+      composedCtx.drawImage(baseImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+
+      applySkinToneByRegion(composedCtx, skinTone);
+
+      if (eye !== 'brown') {
+        const imageData = composedCtx.getImageData(0, 0, composedCanvas.width, composedCanvas.height);
+        const leftRegion = { x1: 410, y1: 370 + CANVAS_TOP_PADDING, x2: 560, y2: 510 + CANVAS_TOP_PADDING };
+        const rightRegion = { x1: 720, y1: 370 + CANVAS_TOP_PADDING, x2: 905, y2: 510 + CANVAS_TOP_PADDING };
+        if (eye === 'hetero') {
+          applyEyeColorByRegion(imageData.data, composedCanvas.width, [leftRegion], '#833303');
+          applyEyeColorByRegion(imageData.data, composedCanvas.width, [rightRegion], '#333CE0');
+        } else if (eye === 'gradient') {
+          applyEyeGradientByRegion(imageData.data, composedCanvas.width, [leftRegion, rightRegion], '#F85646', '#DCC7C7');
+        } else {
+          applyEyeColorByRegion(imageData.data, composedCanvas.width, [leftRegion, rightRegion], irisColor);
+        }
+        composedCtx.putImageData(imageData, 0, 0);
       }
-      const earImg = new Image();
-      earImg.onload = () => {
-        if (!isCurrentDraw()) return;
+
+      if (itemImg) {
+        drawHandheldItem(composedCtx, itemImg);
+      }
+
+      if (bootsImg) {
+        composedCtx.drawImage(bootsImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+      }
+
+      if (hairImg && hairStyle) {
+        const drawW = hairStyle.drawW || 950;
+        const drawH = HAIR_SOURCE_HEIGHT * (drawW / HAIR_SOURCE_WIDTH);
+        const x = (AVATAR_SOURCE_WIDTH - drawW) / 2 - 10 + (hairStyle.offsetX || 0);
+        const y = CANVAS_TOP_PADDING - 60 + (hairStyle.offsetY || 0);
+        composedCtx.drawImage(hairImg, x, y, drawW, drawH);
+      }
+
+      if (outfitImg) {
+        composedCtx.drawImage(outfitImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
+      }
+
+      if (earImg) {
         const sourceWidth = earImg.naturalWidth || earImg.width;
         const sourceHeight = earImg.naturalHeight || earImg.height;
         const drawWidth = sourceWidth * EAR_OVERLAY_SCALE;
         const drawHeight = sourceHeight * EAR_OVERLAY_SCALE;
         const drawX = EAR_OVERLAY_X - ((drawWidth - sourceWidth) / 2);
         const drawY = EAR_OVERLAY_Y - ((drawHeight - sourceHeight) / 2);
-        ctx.drawImage(earImg, 0, 0, sourceWidth, sourceHeight, drawX, drawY, drawWidth, drawHeight);
-        drawHeadOverlay();
-      };
-      earImg.onerror = () => continueIfCurrent(drawHeadOverlay);
-      earImg.src = earOverlaySrc;
-    };
-
-    const drawOutfitOverlay = () => {
-      if (!imageOutfit?.avatarSrc) {
-        drawEarOverlay();
-        return;
+        composedCtx.drawImage(earImg, 0, 0, sourceWidth, sourceHeight, drawX, drawY, drawWidth, drawHeight);
       }
-      const outfitImg = new Image();
-      outfitImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        ctx.drawImage(outfitImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
-        drawEarOverlay();
-      };
-      outfitImg.onerror = () => continueIfCurrent(drawEarOverlay);
-      outfitImg.src = imageOutfit.avatarSrc;
-    };
 
-    const drawHairOnTop = () => {
-      if (!hairStyle) {
-        drawOutfitOverlay();
-        return;
+      if (headImg) {
+        drawBottomAlignedImage(composedCtx, headImg, HEAD_OVERLAY_BOTTOM_Y + (HEAD_OVERLAY_EXTRA_Y[head] || 0));
       }
-      const hairImg = new Image();
-      hairImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        const drawW = hairStyle.drawW || 950;
-        const drawH = HAIR_SOURCE_HEIGHT * (drawW / HAIR_SOURCE_WIDTH);
-        const x = (AVATAR_SOURCE_WIDTH - drawW) / 2 - 10 + (hairStyle.offsetX || 0);
-        const y = CANVAS_TOP_PADDING - 60 + (hairStyle.offsetY || 0);
-        ctx.drawImage(hairImg, x, y, drawW, drawH);
-        drawOutfitOverlay();
-      };
-      hairImg.onerror = () => continueIfCurrent(drawOutfitOverlay);
-      hairImg.src = hairStyleSrc;
-    };
 
-    const drawBootsOverlay = () => {
-      if (!imageBoots?.avatarSrc) {
-        drawHairOnTop();
-        return;
-      }
-      const bootsImg = new Image();
-      bootsImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        ctx.drawImage(bootsImg, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
-        drawHairOnTop();
-      };
-      bootsImg.onerror = () => continueIfCurrent(drawHairOnTop);
-      bootsImg.src = imageBoots.avatarSrc;
-    };
-
-    const drawItemOverlay = () => {
-      if (!imageItem?.avatarSrc) {
-        drawBootsOverlay();
-        return;
-      }
-      const itemImg = new Image();
-      itemImg.onload = () => {
-        if (!isCurrentDraw()) return;
-        drawHandheldItem(ctx, itemImg);
-        drawBootsOverlay();
-      };
-      itemImg.onerror = () => continueIfCurrent(drawBootsOverlay);
-      itemImg.src = imageItem.avatarSrc;
-    };
-
-    const img = new Image();
-    img.onload = () => {
       if (!isCurrentDraw()) return;
-      canvas.width = AVATAR_SOURCE_WIDTH;
-      canvas.height = AVATAR_SOURCE_HEIGHT + CANVAS_TOP_PADDING;
+
+      if (canvas.width !== composedCanvas.width) canvas.width = composedCanvas.width;
+      if (canvas.height !== composedCanvas.height) canvas.height = composedCanvas.height;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, CANVAS_TOP_PADDING, AVATAR_SOURCE_WIDTH, AVATAR_SOURCE_HEIGHT);
-
-      applySkinToneByRegion(ctx, skinTone);
-
-      if (eye !== 'brown') {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const leftRegion = { x1: 410, y1: 370 + CANVAS_TOP_PADDING, x2: 560, y2: 510 + CANVAS_TOP_PADDING };
-        const rightRegion = { x1: 720, y1: 370 + CANVAS_TOP_PADDING, x2: 905, y2: 510 + CANVAS_TOP_PADDING };
-        if (eye === 'hetero') {
-          applyEyeColorByRegion(imageData.data, canvas.width, [leftRegion], '#833303');
-          applyEyeColorByRegion(imageData.data, canvas.width, [rightRegion], '#333CE0');
-        } else if (eye === 'gradient') {
-          applyEyeGradientByRegion(imageData.data, canvas.width, [leftRegion, rightRegion], '#F85646', '#DCC7C7');
-        } else {
-          applyEyeColorByRegion(imageData.data, canvas.width, [leftRegion, rightRegion], irisColor);
-        }
-        ctx.putImageData(imageData, 0, 0);
-      }
-
-      drawItemOverlay();
+      ctx.drawImage(composedCanvas, 0, 0);
     };
-    img.src = 'clear_avatar.png?v=1';
+
+    drawLayers().catch(() => {});
   }, [boots, earOverlaySrc, eye, hairStyle, hairStyleSrc, head, imageBoots, imageHead, imageItem, imageOutfit, irisColor, item, outfit, skinTone]);
 
   React.useEffect(() => {

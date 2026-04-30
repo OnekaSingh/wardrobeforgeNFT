@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>WardrobeForge — Every Thread, A Twin</title>
-<link rel="icon" href="assets/logo.png?v=2" />
+<link rel="icon" href="assets/logo.webp?v=3" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
@@ -258,6 +258,26 @@ a{color:inherit; text-decoration:none}
   letter-spacing:.06em;
 }
 .foot a{ color: var(--coral-soft); margin: 0 8px }
+.foot-contact-wrap{
+  margin-bottom: 20px;
+}
+.foot-contact-btn{
+  background: var(--white);
+  color: var(--ink);
+  box-shadow:
+    0 -4px 0 0 var(--white),
+    0 4px 0 0 var(--white),
+    -4px 0 0 0 var(--white),
+    4px 0 0 0 var(--white),
+    0 8px 0 0 var(--coral);
+}
+.foot-contact-btn:active{
+  box-shadow:
+    0 -4px 0 0 var(--white),
+    0 4px 0 0 var(--white),
+    -4px 0 0 0 var(--white),
+    4px 0 0 0 var(--white);
+}
 
 /* heading styles */
 h1.pixel{ font-size: 28px; line-height:1.2; }
@@ -335,6 +355,7 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
 }
 @media (max-width: 600px){
   .grid.cols-2, .grid.cols-3, .grid.cols-4{ grid-template-columns: 1fr }
+  .contact-grid{ grid-template-columns: 1fr }
 }
 
 /* nft card */
@@ -370,6 +391,34 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
 .legal ul{ padding-left: 22px; margin-bottom: 12px }
 .legal li{ margin-bottom: 4px }
 .legal .meta{ font-family:'PressStart', monospace; font-size: 9px; color:#888 }
+.contact-page{
+  background:
+    radial-gradient(circle at top right, rgba(168,222,255,.34), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(255,184,200,.28), transparent 26%),
+    linear-gradient(180deg, #fff 0%, #fff7f2 100%);
+}
+.contact-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+.contact-card{
+  padding: 18px;
+  background: rgba(255,255,255,.9);
+  border: 4px solid var(--ink);
+  box-shadow: 0 6px 0 0 var(--coral);
+}
+.contact-card p{
+  margin-bottom: 0;
+  font-size: 26px;
+}
+.contact-card a,
+.contact-page a{
+  color: var(--coral-deep);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 
 /* avatar stage */
 .stage{
@@ -1409,6 +1458,30 @@ const PrivacyPage = () => (
   </div>
 );
 
+const ContactPage = () => (
+  <div className="page">
+    <div className="legal contact-page pxl-box">
+      <h1>CONTACT</h1>
+      <div className="meta">WARDROBEFORGE SUPPORT · GENERAL INQUIRIES · RESPONSE CHANNELS</div>
+      <hr className="pxl-hr" />
+      <p>Need to reach WardrobeForge? Use the contact details below for direct support, billing questions, partnership conversations, or general account help.</p>
+      <div className="contact-grid">
+        <div className="contact-card">
+          <h2>EMAIL</h2>
+          <p><a href="mailto:info@wardrobeforge.com">info@wardrobeforge.com</a></p>
+        </div>
+        <div className="contact-card">
+          <h2>PHONE</h2>
+          <p><a href="tel:+16066719009">+1 (606) 671-9009</a></p>
+        </div>
+      </div>
+      <h2>GENERAL INQUIRIES</h2>
+      <p>For general inquiries, please use our contact form here:</p>
+      <p><a href="https://wardrobeforge.com/contact" target="_blank" rel="noreferrer">https://wardrobeforge.com/contact</a></p>
+    </div>
+  </div>
+);
+
 const TermsPage = () => (
   <div className="page">
     <div className="legal pxl-box">
@@ -1440,6 +1513,7 @@ const TermsPage = () => (
   </div>
 );
 
+window.ContactPage = ContactPage;
 window.PrivacyPage = PrivacyPage;
 window.TermsPage = TermsPage;
 </script>
@@ -1475,13 +1549,14 @@ const App = () => {
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column' }}>
       <nav className="nav">
         <div className="logo" onClick={() => goto('main')}>
-          <img src="assets/logo.png?v=2" alt="WardrobeForge" onError={e => e.target.style.display='none'} />
+          <img src="assets/logo.webp?v=3" alt="WardrobeForge" onError={e => e.target.style.display='none'} />
           <span>WARDROBE<span style={{ color:'var(--coral)' }}>FORGE</span></span>
         </div>
         <div className="links">
           <div className={`link ${page==='main'?'active':''}`} onClick={() => goto('main')}>HOME</div>
           <div className={`link ${page==='avatar'?'active':''}`} onClick={() => goto('avatar')}>MY AVATAR</div>
           <div className={`link ${page==='nfts'?'active':''}`} onClick={() => goto('nfts')}>CLOTHING NFTS</div>
+          <div className={`link ${page==='contact'?'active':''}`} onClick={() => goto('contact')}>CONTACT</div>
           <div className={`link ${page==='privacy'?'active':''}`} onClick={() => goto('privacy')}>PRIVACY</div>
           <div className={`link ${page==='terms'?'active':''}`} onClick={() => goto('terms')}>TERMS</div>
           <button className="pxl-btn" style={{ marginLeft:8 }} onClick={() => goto('avatar')}>CONNECT</button>
@@ -1492,12 +1567,16 @@ const App = () => {
         {page === 'main'    && <MainPage goto={goto} />}
         {page === 'avatar'  && <AvatarPage />}
         {page === 'nfts'    && <NFTsPage initialId={nftFocus} />}
+        {page === 'contact' && <ContactPage />}
         {page === 'privacy' && <PrivacyPage />}
         {page === 'terms'   && <TermsPage />}
       </main>
 
       <footer className="foot">
         <div style={{ marginBottom:14 }}>2026 WardrobeForge · All rights reserved · Forge Your Wardrobe</div>
+        <div className="foot-contact-wrap">
+          <button className="pxl-btn ghost foot-contact-btn" onClick={() => goto('contact')}>CONTACT US</button>
+        </div>
         <div>
           <a onClick={() => goto('main')} style={{ cursor:'pointer' }}>HOME</a> ·
           <a onClick={() => goto('avatar')} style={{ cursor:'pointer' }}>AVATAR</a> ·

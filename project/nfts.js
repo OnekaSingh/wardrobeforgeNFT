@@ -21,8 +21,8 @@ const STARTER_GEAR_LIBRARY = [
     lore: 'The default uniform used to preview every new look before the relics come out.',
     pointsBonus: 0,
     owned: true,
-    inventorySrc: 'assets/starter/final_base_outfit.png?v=2',
-    avatarSrc: 'assets/starter/final_base_outfit.png?v=2',
+    inventorySrc: 'assets/starter/final_base_outfit.webp?v=3',
+    avatarSrc: 'assets/starter/final_base_outfit.webp?v=3',
   },
   {
     id: 'NFT-BASE-0002',
@@ -39,8 +39,8 @@ const STARTER_GEAR_LIBRARY = [
     lore: 'Starter shoes forged to anchor every outfit before the flex pieces come in.',
     pointsBonus: 0,
     owned: true,
-    inventorySrc: 'assets/starter/final_base_shoes.png?v=2',
-    avatarSrc: 'assets/starter/final_base_shoes.png?v=2',
+    inventorySrc: 'assets/starter/final_base_shoes.webp?v=3',
+    avatarSrc: 'assets/starter/final_base_shoes.webp?v=3',
   },
 ];
 

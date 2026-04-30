@@ -85,9 +85,11 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Could not determine the app origin for checkout redirects.' });
   }
 
+  const claimId = crypto.randomUUID();
   const redirectUrl = new URL('/?square_status=success', origin);
   redirectUrl.searchParams.set('pack', topUp.packId);
   redirectUrl.searchParams.set('tokens', String(topUp.tokens));
+  redirectUrl.searchParams.set('claim', claimId);
   redirectUrl.hash = 'topup';
 
   const buyerEmail = normalizeEmail(request.body?.buyerEmail);
@@ -148,6 +150,7 @@ export default async function handler(request, response) {
     return response.status(200).json({
       checkoutUrl: squarePayload?.payment_link?.url || squarePayload?.payment_link?.long_url || null,
       paymentLinkId: squarePayload?.payment_link?.id || null,
+      claimId,
       amountCents: topUp.amountCents,
       tokens: topUp.tokens,
     });
