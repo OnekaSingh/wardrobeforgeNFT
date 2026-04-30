@@ -70,6 +70,7 @@ const App = () => {
         {page === 'nfts' && <NFTsPage initialId={nftFocus} goto={goto} currentUser={currentUser} openAuthModal={openAuthModal} />}
         {page === 'topup' && <TopUpPage currentUser={currentUser} goto={goto} openAuthModal={openAuthModal} />}
         {page === 'account' && <AuthPage goto={goto} />}
+        {page === 'contact' && <ContactPage />}
         {page === 'privacy' && <PrivacyPage />}
         {page === 'terms' && <TermsPage />}
       </main>
@@ -105,6 +106,7 @@ const Nav = ({ page, goto, currentUser }) => {
         <div className={`link ${page === 'avatar' ? 'active' : ''}`} onClick={() => goto('avatar')}>MY AVATAR</div>
         <div className={`link ${page === 'nfts' ? 'active' : ''}`} onClick={() => goto('nfts')}>CLOTHING NFTS</div>
         <div className={`link ${page === 'topup' ? 'active' : ''}`} onClick={() => goto('topup')}>TOP UP</div>
+        <div className={`link ${page === 'contact' ? 'active' : ''}`} onClick={() => goto('contact')}>CONTACT</div>
         <div className={`link ${page === 'privacy' ? 'active' : ''}`} onClick={() => goto('privacy')}>PRIVACY</div>
         <div className={`link ${page === 'terms' ? 'active' : ''}`} onClick={() => goto('terms')}>TERMS</div>
       </div>
@@ -128,6 +130,9 @@ const Nav = ({ page, goto, currentUser }) => {
 const Footer = ({ goto }) => (
   <footer className="foot">
     <div style={{ marginBottom: 14 }}>2026 WardrobeForge · All rights reserved · Forge Your Wardrobe</div>
+    <div className="foot-contact-wrap">
+      <button className="pxl-btn ghost foot-contact-btn" onClick={() => goto('contact')}>CONTACT US</button>
+    </div>
     <div>
       <a onClick={() => goto('main')} style={{ cursor: 'pointer' }}>HOME</a>·
       <a onClick={() => goto('avatar')} style={{ cursor: 'pointer' }}>AVATAR</a>·
