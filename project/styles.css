@@ -1260,3 +1260,103 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   background: var(--white);
   display:inline-block;
 }
+
+.monthly-top-shell{
+  color: var(--ink);
+  overflow: visible;
+}
+
+.avatar-orbit-stage{
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 18px 16px 12px;
+  overflow: hidden;
+}
+
+.avatar-orbit-track{
+  display: flex;
+  gap: 18px;
+  width: max-content;
+  animation: avatarOrbit 28s linear infinite;
+}
+
+.avatar-orbit-spacer{
+  flex: 0 0 120px;
+}
+
+.avatar-orbit-card{
+  width: 100%;
+  max-width: 224px;
+  margin: 0;
+  padding: 16px;
+  flex: 0 0 224px;
+  background: rgba(255,247,242,.98);
+}
+
+.avatar-orbit-ribbon{
+  top: -6px;
+  right: -6px;
+}
+
+.avatar-orbit-thumb{
+  aspect-ratio: 1 / 1.08;
+  margin-bottom: 12px;
+  background-color: var(--white);
+  background-image: none;
+}
+
+.avatar-orbit-thumb img{
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 94%;
+  max-height: 94%;
+  object-fit: contain;
+  background: var(--white);
+  margin: 0 auto;
+}
+
+.avatar-orbit-name{
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.avatar-orbit-serial{
+  font-size: 16px;
+  opacity: .7;
+  margin-bottom: 8px;
+}
+
+.avatar-orbit-meta{
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+@keyframes avatarOrbit{
+  from{ transform: translateX(0); }
+  to{ transform: translateX(calc(-50% - 9px)); }
+}
+
+@media (max-width: 900px){
+  .avatar-orbit-stage{
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    padding: 16px 12px 10px;
+  }
+
+  .avatar-orbit-spacer{
+    flex-basis: 72px;
+  }
+
+  .avatar-orbit-card{
+    flex-basis: 168px;
+    max-width: 168px;
+    padding: 12px;
+  }
+
+  .avatar-orbit-track{
+    gap: 14px;
+  }
+}

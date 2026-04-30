@@ -6,11 +6,14 @@ const AUTH_CHANGE_EVENT = 'wardrobeforge-auth-change';
 const AUTH_VTO_GRANT_KEY = 'wardrobeforge-vto-grant-300-v1';
 const AUTH_TEST_VTO_BONUS_KEY = 'wardrobeforge-test-vto-bonus-500-v1';
 const AUTH_BACKEND_URL_STORAGE_KEY = 'wardrobeforge-backend-url';
+const AUTH_LOCAL_CREDENTIALS_STORAGE_KEY = 'wardrobeforge-auth-local-credentials-v1';
+const AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY = 'wardrobeforge-auth-local-verification-codes-v1';
 const STARTER_OWNED_ART_IDS = ['base-outfit', 'base-shoes'];
 const STARTER_VTO_BALANCE = 300;
 const STARTER_ACCOUNT_XP = 0;
 const TEST_VTO_BONUS = 500;
 const DEFAULT_BACKEND_BASE_URL = 'http://localhost:8001';
+const LOCAL_SESSION_TOKEN_PREFIX = 'wf_local_session_';
 const AUTHENTICITY_CODE_PART_LENGTH = 10;
 const AUTHENTICITY_CODE_PARTS = 4;
 const AUTHENTICITY_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -85,6 +88,36 @@ const readStoredAccounts = () => {
 
 const writeStoredAccounts = (accounts) => {
   window.localStorage.setItem(AUTH_ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+};
+
+const readLocalCredentials = () => {
+  try {
+    const raw = window.localStorage.getItem(AUTH_LOCAL_CREDENTIALS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((entry) => entry && typeof entry === 'object') : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+const writeLocalCredentials = (credentials) => {
+  window.localStorage.setItem(AUTH_LOCAL_CREDENTIALS_STORAGE_KEY, JSON.stringify(credentials));
+};
+
+const readLocalVerificationCodes = () => {
+  try {
+    const raw = window.localStorage.getItem(AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+const writeLocalVerificationCodes = (codes) => {
+  window.localStorage.setItem(AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY, JSON.stringify(codes));
 };
 
 const getUserBalanceValue = (account) => {
@@ -298,8 +331,118 @@ const getScopedStorageKey = (baseKey, userId = null) => {
 
 const createApiError = (message, status = null) => {
   const error = new Error(message);
-  if (status) error.status = status;
+  if (status !== null && status !== undefined) error.status = status;
   return error;
+};
+
+const isBackendUnavailableError = (error) => Number(error?.status) === 0;
+
+const isLocalSessionToken = (token) => trimValue(token).startsWith(LOCAL_SESSION_TOKEN_PREFIX);
+
+const createLocalSessionToken = () => `${LOCAL_SESSION_TOKEN_PREFIX}${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+
+const createLocalUserId = () => `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createLocalVerificationCode = () => String(Math.floor(100000 + Math.random() * 900000));
+
+const findLocalCredential = (identifier) => {
+  const cleanIdentifier = trimValue(identifier);
+  const normalizedIdentifier = normalizeEmail(identifier);
+
+  return readLocalCredentials().find((entry) => (
+    entry
+    && (
+      normalizeEmail(entry.email) === normalizedIdentifier
+      || trimValue(entry.username).toLowerCase() === cleanIdentifier.toLowerCase()
+    )
+  )) || null;
+};
+
+const sendLocalVerificationCode = async (email) => {
+  const cleanEmail = normalizeEmail(email);
+  const verificationCode = createLocalVerificationCode();
+  const codes = readLocalVerificationCodes();
+
+  codes[cleanEmail] = {
+    code: verificationCode,
+    issuedAt: new Date().toISOString(),
+  };
+
+  writeLocalVerificationCodes(codes);
+
+  return {
+    delivery: 'local',
+    verification_code: verificationCode,
+  };
+};
+
+const signUpLocally = async ({ displayName, email, password, verificationCode, agreeToTerms, subscribeToNews }) => {
+  const cleanName = trimValue(displayName);
+  const cleanEmail = normalizeEmail(email);
+  const cleanPassword = String(password || '');
+  const cleanVerificationCode = trimValue(verificationCode);
+
+  if (findLocalCredential(cleanEmail)) {
+    throw new Error('An account with that email already exists.');
+  }
+
+  if (findLocalCredential(cleanName)) {
+    throw new Error('That username is already taken.');
+  }
+
+  const storedCodes = readLocalVerificationCodes();
+  const expectedCode = trimValue(storedCodes[cleanEmail]?.code);
+  if (!expectedCode || expectedCode !== cleanVerificationCode) {
+    throw new Error('Enter the latest verification code for this email.');
+  }
+
+  const user = {
+    id: createLocalUserId(),
+    username: cleanName,
+    displayName: cleanName,
+    email: cleanEmail,
+    createdAt: new Date().toISOString(),
+  };
+
+  const credentials = readLocalCredentials();
+  credentials.unshift({
+    userId: user.id,
+    username: cleanName,
+    email: cleanEmail,
+    password: cleanPassword,
+    agreeToTerms: Boolean(agreeToTerms),
+    subscribeToNews: Boolean(subscribeToNews),
+    createdAt: user.createdAt,
+  });
+  writeLocalCredentials(credentials);
+
+  delete storedCodes[cleanEmail];
+  writeLocalVerificationCodes(storedCodes);
+
+  return setCurrentUser({
+    token: createLocalSessionToken(),
+    user,
+  });
+};
+
+const logInLocally = async ({ email, password }) => {
+  const credential = findLocalCredential(email);
+  if (!credential || String(credential.password || '') !== String(password || '')) {
+    throw new Error('Incorrect email/username or password.');
+  }
+
+  const user = {
+    id: trimValue(credential.userId),
+    username: trimValue(credential.username),
+    displayName: trimValue(credential.username),
+    email: normalizeEmail(credential.email),
+    createdAt: credential.createdAt || new Date().toISOString(),
+  };
+
+  return setCurrentUser({
+    token: createLocalSessionToken(),
+    user,
+  });
 };
 
 const apiRequest = async (path, { method = 'GET', body = null, token = null } = {}) => {
@@ -423,10 +566,15 @@ const sendVerificationCode = async (email) => {
     throw new Error('Enter a valid email address.');
   }
 
-  return apiRequest('/auth/send-verification-code', {
-    method: 'POST',
-    body: { email: cleanEmail },
-  });
+  try {
+    return await apiRequest('/auth/send-verification-code', {
+      method: 'POST',
+      body: { email: cleanEmail },
+    });
+  } catch (error) {
+    if (!isBackendUnavailableError(error)) throw error;
+    return sendLocalVerificationCode(cleanEmail);
+  }
 };
 
 const signUp = async ({ displayName, email, password, verificationCode, agreeToTerms, subscribeToNews }) => {
@@ -451,22 +599,34 @@ const signUp = async ({ displayName, email, password, verificationCode, agreeToT
     throw new Error('You must agree to the terms and conditions.');
   }
 
-  const result = await apiRequest('/auth/signup', {
-    method: 'POST',
-    body: {
-      username: cleanName,
-      password: cleanPassword,
-      email: cleanEmail,
-      verification_code: cleanVerificationCode,
-      agree_to_terms: Boolean(agreeToTerms),
-      subscribe_to_news: Boolean(subscribeToNews),
-    },
-  });
+  try {
+    const result = await apiRequest('/auth/signup', {
+      method: 'POST',
+      body: {
+        username: cleanName,
+        password: cleanPassword,
+        email: cleanEmail,
+        verification_code: cleanVerificationCode,
+        agree_to_terms: Boolean(agreeToTerms),
+        subscribe_to_news: Boolean(subscribeToNews),
+      },
+    });
 
-  return setCurrentUser({
-    token: result?.access_token,
-    user: result?.user,
-  });
+    return setCurrentUser({
+      token: result?.access_token,
+      user: result?.user,
+    });
+  } catch (error) {
+    if (!isBackendUnavailableError(error)) throw error;
+    return signUpLocally({
+      displayName: cleanName,
+      email: cleanEmail,
+      password: cleanPassword,
+      verificationCode: cleanVerificationCode,
+      agreeToTerms,
+      subscribeToNews,
+    });
+  }
 };
 
 const logIn = async ({ email, password }) => {
@@ -480,23 +640,35 @@ const logIn = async ({ email, password }) => {
     throw new Error('Enter your password.');
   }
 
-  const result = await apiRequest('/auth/login', {
-    method: 'POST',
-    body: {
-      identifier,
-      password: cleanPassword,
-    },
-  });
+  try {
+    const result = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: {
+        identifier,
+        password: cleanPassword,
+      },
+    });
 
-  return setCurrentUser({
-    token: result?.access_token,
-    user: result?.user,
-  });
+    return setCurrentUser({
+      token: result?.access_token,
+      user: result?.user,
+    });
+  } catch (error) {
+    if (!isBackendUnavailableError(error)) throw error;
+    return logInLocally({ email: identifier, password: cleanPassword });
+  }
 };
 
 const refreshSession = async () => {
   const session = readStoredSession();
   if (!session?.token) return null;
+  if (isLocalSessionToken(session.token)) {
+    return setCurrentUser({
+      token: session.token,
+      user: session.user,
+      loggedInAt: session.loggedInAt,
+    });
+  }
 
   try {
     const user = await apiRequest('/auth/me', {
@@ -602,8 +774,12 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
     setBusyAction('code');
 
     try {
-      await sendVerificationCode(email);
-      setSuccess(`Verification code sent to ${normalizeEmail(email)}.`);
+      const result = await sendVerificationCode(email);
+      if (result?.delivery === 'local' && result?.verification_code) {
+        setSuccess('Code Sent');
+      } else {
+        setSuccess('Code Sent');
+      }
     } catch (nextError) {
       setError(nextError.message || 'Could not send verification code.');
     } finally {
@@ -628,7 +804,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
           agreeToTerms,
           subscribeToNews,
         });
-        setSuccess(`Welcome, ${user.displayName}. Your backend account is live.`);
+        setSuccess(`Welcome, ${user.displayName}. Your account is ready.`);
       } else {
         user = await logIn({ email, password });
         setSuccess(`Welcome back, ${user.displayName}.`);
