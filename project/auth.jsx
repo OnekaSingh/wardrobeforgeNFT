@@ -3,16 +3,15 @@
 const AUTH_ACCOUNTS_STORAGE_KEY = 'wardrobeforge-auth-accounts-v1';
 const AUTH_SESSION_STORAGE_KEY = 'wardrobeforge-auth-session-v2';
 const AUTH_CHANGE_EVENT = 'wardrobeforge-auth-change';
-const AUTH_VTO_GRANT_KEY = 'wardrobeforge-vto-grant-300-v1';
-const AUTH_TEST_VTO_BONUS_KEY = 'wardrobeforge-test-vto-bonus-500-v1';
+const AUTH_VTO_GRANT_KEY = 'wardrobeforge-vto-grant-100-v2';
 const AUTH_BACKEND_URL_STORAGE_KEY = 'wardrobeforge-backend-url';
 const AUTH_LOCAL_CREDENTIALS_STORAGE_KEY = 'wardrobeforge-auth-local-credentials-v1';
 const AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY = 'wardrobeforge-auth-local-verification-codes-v1';
 const STARTER_OWNED_ART_IDS = ['base-outfit', 'base-shoes'];
-const STARTER_VTO_BALANCE = 300;
+const STARTER_VTO_BALANCE = 100;
 const STARTER_ACCOUNT_XP = 0;
-const TEST_VTO_BONUS = 500;
-const DEFAULT_BACKEND_BASE_URL = 'http://localhost:8001';
+const LEGACY_STARTER_VTO_BALANCES = new Set([300, 800]);
+const DEFAULT_BACKEND_BASE_URL = 'https://api.wardrobeforge.com';
 const LOCAL_SESSION_TOKEN_PREFIX = 'wf_local_session_';
 const AUTHENTICITY_CODE_PART_LENGTH = 10;
 const AUTHENTICITY_CODE_PARTS = 4;
@@ -120,7 +119,24 @@ const writeLocalVerificationCodes = (codes) => {
   window.localStorage.setItem(AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY, JSON.stringify(codes));
 };
 
+const hasOnlyStarterArt = (account) => {
+  const ownedArtIds = Array.isArray(account?.ownedArtIds) ? account.ownedArtIds.filter(Boolean) : [];
+  if (ownedArtIds.length !== STARTER_OWNED_ART_IDS.length) return false;
+  return STARTER_OWNED_ART_IDS.every((artId) => ownedArtIds.includes(artId));
+};
+
+const shouldNormalizeLegacyStarterBalance = (account) => {
+  const balance = Number(account?.vtoBalance);
+  const xp = Number(account?.xp);
+  return (
+    LEGACY_STARTER_VTO_BALANCES.has(balance)
+    && hasOnlyStarterArt(account)
+    && (Number.isFinite(xp) ? xp : STARTER_ACCOUNT_XP) === STARTER_ACCOUNT_XP
+  );
+};
+
 const getUserBalanceValue = (account) => {
+  if (shouldNormalizeLegacyStarterBalance(account)) return STARTER_VTO_BALANCE;
   const balance = Number(account?.vtoBalance);
   return Number.isFinite(balance) ? balance : STARTER_VTO_BALANCE;
 };
@@ -335,7 +351,14 @@ const createApiError = (message, status = null) => {
   return error;
 };
 
-const isBackendUnavailableError = (error) => Number(error?.status) === 0;
+const isLocalDevelopmentHost = () => {
+  const hostname = trimValue(window.location.hostname).toLowerCase();
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+};
+const shouldUseLocalAuthFallback = (error) => {
+  const status = Number(error?.status);
+  return status === 0 || status === 404;
+};
 
 const isLocalSessionToken = (token) => trimValue(token).startsWith(LOCAL_SESSION_TOKEN_PREFIX);
 
@@ -344,6 +367,20 @@ const createLocalSessionToken = () => `${LOCAL_SESSION_TOKEN_PREFIX}${Math.rando
 const createLocalUserId = () => `local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const createLocalVerificationCode = () => String(Math.floor(100000 + Math.random() * 900000));
+
+const storeLocalVerificationCode = (email, verificationCode) => {
+  const cleanEmail = normalizeEmail(email);
+  const cleanVerificationCode = trimValue(verificationCode);
+  const codes = readLocalVerificationCodes();
+
+  codes[cleanEmail] = {
+    code: cleanVerificationCode,
+    issuedAt: new Date().toISOString(),
+  };
+
+  writeLocalVerificationCodes(codes);
+  return cleanVerificationCode;
+};
 
 const findLocalCredential = (identifier) => {
   const cleanIdentifier = trimValue(identifier);
@@ -361,14 +398,7 @@ const findLocalCredential = (identifier) => {
 const sendLocalVerificationCode = async (email) => {
   const cleanEmail = normalizeEmail(email);
   const verificationCode = createLocalVerificationCode();
-  const codes = readLocalVerificationCodes();
-
-  codes[cleanEmail] = {
-    code: verificationCode,
-    issuedAt: new Date().toISOString(),
-  };
-
-  writeLocalVerificationCodes(codes);
+  storeLocalVerificationCode(cleanEmail, verificationCode);
 
   return {
     delivery: 'local',
@@ -465,9 +495,44 @@ const apiRequest = async (path, { method = 'GET', body = null, token = null } = 
     response = await fetch(`${getBackendBaseUrl()}/api${path}`, requestInit);
   } catch (error) {
     throw createApiError(
-      `Could not reach the backend at ${getBackendBaseUrl()}. Make sure the w-react API is running.`,
+      `Could not reach the backend at ${getBackendBaseUrl()}. Make sure the WardrobeForge API is running.`,
       0,
     );
+  }
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    throw createApiError(
+      payload?.detail || payload?.message || `Request failed with status ${response.status}.`,
+      response.status,
+    );
+  }
+
+  return payload;
+};
+
+const appApiRequest = async (path, { method = 'GET', body = null } = {}) => {
+  const requestInit = {
+    method,
+    headers: {},
+  };
+
+  if (body !== null) {
+    requestInit.headers['Content-Type'] = 'application/json';
+    requestInit.body = JSON.stringify(body);
+  }
+
+  let response = null;
+  try {
+    response = await fetch(path, requestInit);
+  } catch (error) {
+    throw createApiError('Could not reach the WardrobeForge email service.', 0);
   }
 
   let payload = null;
@@ -510,25 +575,6 @@ const applyOneTimeVtoGrant = () => {
   }
 };
 
-const applyOneTimeTestVtoBonus = () => {
-  try {
-    const sessionUser = getCurrentUser();
-    if (!sessionUser?.id) return;
-
-    const bonusKey = getPerUserFlagKey(AUTH_TEST_VTO_BONUS_KEY, sessionUser.id);
-    if (window.localStorage.getItem(bonusKey)) return;
-
-    updateStoredAccount(sessionUser.id, (account) => ({
-      ...account,
-      vtoBalance: getUserBalanceValue(account) + TEST_VTO_BONUS,
-    }));
-
-    window.localStorage.setItem(bonusKey, '1');
-  } catch (error) {
-    // Keep auth usable even if the local test bonus cannot be applied.
-  }
-};
-
 const setCurrentUser = (sessionData) => {
   if (!sessionData) {
     window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
@@ -554,7 +600,6 @@ const setCurrentUser = (sessionData) => {
   );
 
   applyOneTimeVtoGrant();
-  applyOneTimeTestVtoBonus();
   dispatchAuthChange(user);
   return user;
 };
@@ -567,12 +612,19 @@ const sendVerificationCode = async (email) => {
   }
 
   try {
-    return await apiRequest('/auth/send-verification-code', {
+    const verificationCode = storeLocalVerificationCode(cleanEmail, createLocalVerificationCode());
+    const result = await appApiRequest('/api/auth/send-verification-code', {
       method: 'POST',
-      body: { email: cleanEmail },
+      body: {
+        email: cleanEmail,
+        verificationCode,
+      },
     });
+    return {
+      delivery: trimValue(result?.delivery) || 'email',
+    };
   } catch (error) {
-    if (!isBackendUnavailableError(error)) throw error;
+    if (!isLocalDevelopmentHost() || !shouldUseLocalAuthFallback(error)) throw error;
     return sendLocalVerificationCode(cleanEmail);
   }
 };
@@ -617,7 +669,7 @@ const signUp = async ({ displayName, email, password, verificationCode, agreeToT
       user: result?.user,
     });
   } catch (error) {
-    if (!isBackendUnavailableError(error)) throw error;
+    if (!shouldUseLocalAuthFallback(error)) throw error;
     return signUpLocally({
       displayName: cleanName,
       email: cleanEmail,
@@ -654,7 +706,7 @@ const logIn = async ({ email, password }) => {
       user: result?.user,
     });
   } catch (error) {
-    if (!isBackendUnavailableError(error)) throw error;
+    if (!shouldUseLocalAuthFallback(error)) throw error;
     return logInLocally({ email: identifier, password: cleanPassword });
   }
 };
@@ -776,7 +828,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
     try {
       const result = await sendVerificationCode(email);
       if (result?.delivery === 'local' && result?.verification_code) {
-        setSuccess('Code Sent');
+        setSuccess(`Demo code: ${result.verification_code}`);
       } else {
         setSuccess('Code Sent');
       }
