@@ -1,16 +1,28 @@
 /* ============= Top Up page ============= */
 
 const TOP_UP_PACKAGES = [
-  { id: 'topup-100', price: 1.99, tokens: 100, tier: 1, badge: 'START', imageSrc: 'assets/top up/1.png' },
-  { id: 'topup-400', price: 5.99, tokens: 400, tier: 2, badge: 'BOOST', imageSrc: 'assets/top up/2.png' },
-  { id: 'topup-1700', price: 25.99, tokens: 1700, tier: 3, badge: 'STACK', imageSrc: 'assets/top up/3.png' },
-  { id: 'topup-3600', price: 50.99, tokens: 3600, tier: 4, badge: 'DROP', imageSrc: 'assets/top up/4.png' },
-  { id: 'topup-15500', price: 200.99, tokens: 15500, tier: 5, badge: 'VAULT', imageSrc: 'assets/top up/5.png' },
-  { id: 'topup-custom', price: null, tokens: null, tier: 6, badge: 'CUSTOM', custom: true, imageSrc: 'assets/top up/6.png' },
+  { id: 'topup-100', price: 1.99, tokens: 100, tier: 1, badge: 'START', imageSrc: 'assets/top up/1.webp' },
+  { id: 'topup-400', price: 5.99, tokens: 400, tier: 2, badge: 'BOOST', imageSrc: 'assets/top up/2.webp' },
+  { id: 'topup-1700', price: 25.99, tokens: 1700, tier: 3, badge: 'STACK', imageSrc: 'assets/top up/3.webp' },
+  { id: 'topup-3600', price: 50.99, tokens: 3600, tier: 4, badge: 'DROP', imageSrc: 'assets/top up/4.webp' },
+  { id: 'topup-15500', price: 200.99, tokens: 15500, tier: 5, badge: 'VAULT', imageSrc: 'assets/top up/5.webp' },
+  { id: 'topup-custom', price: null, tokens: null, tier: 6, badge: 'CUSTOM', custom: true, imageSrc: 'assets/top up/6.webp' },
 ];
 
 const TOP_UP_CUSTOM_RATE = 1.99 / 100;
 const TOP_UP_PENDING_REWARD_STORAGE_KEY = 'wardrobeforge-pending-square-reward-v1';
+const TOP_UP_REWARD_CONFETTI = [
+  { left: '6%', delay: '0s', duration: '2.6s', color: 'var(--coral)', size: 14 },
+  { left: '14%', delay: '.35s', duration: '3.1s', color: 'var(--sky)', size: 10 },
+  { left: '22%', delay: '.15s', duration: '2.9s', color: 'var(--lemon)', size: 12 },
+  { left: '31%', delay: '.55s', duration: '3.25s', color: 'var(--lavender)', size: 14 },
+  { left: '43%', delay: '.1s', duration: '2.7s', color: 'var(--mint)', size: 10 },
+  { left: '54%', delay: '.45s', duration: '3.2s', color: 'var(--pink-neon)', size: 12 },
+  { left: '66%', delay: '.2s', duration: '2.8s', color: 'var(--coral-soft)', size: 14 },
+  { left: '78%', delay: '.6s', duration: '3.15s', color: 'var(--sky)', size: 10 },
+  { left: '88%', delay: '.05s', duration: '2.95s', color: 'var(--lemon)', size: 12 },
+  { left: '94%', delay: '.5s', duration: '3.3s', color: 'var(--lavender)', size: 10 },
+];
 
 const formatUsd = (amount) => `$${amount.toFixed(2)}`;
 
@@ -50,7 +62,7 @@ const TopUpCard = ({ pack, onClaim, busy, onOpenCustom }) => (
   <div className={`pxl-box topup-card ${pack.custom ? 'topup-card-custom' : ''}`}>
     <div className="topup-card-badge">{pack.badge}</div>
     <div className="topup-card-stage">
-      <img className="topup-card-image" src={pack.imageSrc} alt={pack.custom ? 'Custom top up pack' : `${pack.tokens.toLocaleString()} token pack`} />
+      <img className="topup-card-image" src={pack.imageSrc} alt={pack.custom ? 'Custom top up pack' : `${pack.tokens.toLocaleString()} token pack`} loading="lazy" decoding="async" />
     </div>
     <div className="topup-card-lower">
       <div className="pixel topup-card-amount">{pack.custom ? 'CUSTOM' : `${pack.tokens.toLocaleString()} TOKENS`}</div>
@@ -195,7 +207,7 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
 
         <div className="topup-balance-row">
           <span className="chip">CURRENT BALANCE</span>
-          <img className="vto-token-icon" src="assets/token.png" alt="VTO token" />
+          <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
           <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{accountSnapshot.balance.toLocaleString()}</span>
         </div>
 
@@ -241,7 +253,7 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
               </p>
 
               <div className="topup-custom-preview">
-                <img className="topup-card-image" src="assets/top up/6.png" alt="Custom top up pack" />
+                <img className="topup-card-image" src="assets/top up/6.webp" alt="Custom top up pack" decoding="async" />
               </div>
 
               <div className="topup-custom-metrics">
@@ -282,7 +294,23 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
       {pendingReward && (
         <div className="topup-modal-backdrop" onClick={() => {}}>
           <div className="topup-modal-shell" onClick={(event) => event.stopPropagation()}>
-            <div className="pxl-box topup-custom-card">
+            <div className="pxl-box topup-custom-card topup-reward-card">
+              <div className="topup-reward-confetti" aria-hidden="true">
+                {TOP_UP_REWARD_CONFETTI.map((piece, index) => (
+                  <span
+                    key={`confetti-${index}`}
+                    className="topup-reward-confetti-piece"
+                    style={{
+                      left: piece.left,
+                      animationDelay: piece.delay,
+                      animationDuration: piece.duration,
+                      background: piece.color,
+                      width: piece.size,
+                      height: piece.size,
+                    }}
+                  />
+                ))}
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
                   <div className="chip coral" style={{ marginBottom: 12 }}>THANK YOU</div>
@@ -313,6 +341,8 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
                       className="topup-card-image"
                       src={pendingRewardItem.inventorySrc}
                       alt={pendingRewardItem.name}
+                      loading="lazy"
+                      decoding="async"
                       style={{ margin: 0, maxHeight: 140 }}
                     />
                   </div>

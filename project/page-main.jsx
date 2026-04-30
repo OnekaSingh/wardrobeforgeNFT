@@ -13,6 +13,8 @@ const NFTArt = ({ nft, scale = 5, mode = 'inventory', style = {} }) => {
       <img
         src={imageSrc}
         alt={nft?.name || nft?.art || 'NFT artwork'}
+        loading="lazy"
+        decoding="async"
         style={{
           width: '100%',
           height: '100%',
@@ -67,14 +69,14 @@ const MainPage = ({ goto, currentUser }) => {
     .map((id) => browsableCatalog.find((n) => n.id === id))
     .filter(Boolean);
   const monthlyTopAvatars = [
-    { src: 'weekly/1010101.png', name: 'Moon Bloom 01', serial: '#0101 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
-    { src: 'weekly/1111.png', name: 'Cloud Charm 11', serial: '#1111 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
-    { src: 'weekly/111111112343.png', name: 'Crown Pulse 23', serial: '#2343 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
-    { src: 'weekly/22222.png', name: 'Twilight Rune 22', serial: '#2222 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
-    { src: 'weekly/33333.png', name: 'Star Drift 33', serial: '#3333 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
-    { src: 'weekly/4444.png', name: 'Frost Nova 44', serial: '#4444 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
-    { src: 'weekly/5555.png', name: 'Velvet Arc 55', serial: '#5555 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
-    { src: 'weekly/6666.png', name: 'Silver Ember 66', serial: '#6666 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/1010101.webp', name: 'Moon Bloom 01', serial: '#0101 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/1111.webp', name: 'Cloud Charm 11', serial: '#1111 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/111111112343.webp', name: 'Crown Pulse 23', serial: '#2343 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/22222.webp', name: 'Twilight Rune 22', serial: '#2222 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/33333.webp', name: 'Star Drift 33', serial: '#3333 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/4444.webp', name: 'Frost Nova 44', serial: '#4444 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/5555.webp', name: 'Velvet Arc 55', serial: '#5555 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
+    { src: 'weekly/6666.webp', name: 'Silver Ember 66', serial: '#6666 / Monthly', tagA: 'Leaderboard', tagB: 'Monthly Top' },
   ];
   const wardrobeTarget = currentUser ? 'avatar' : 'account';
   const wardrobeLabel = currentUser ? 'ENTER WARDROBE' : 'CREATE ACCOUNT';
@@ -129,8 +131,9 @@ const MainPage = ({ goto, currentUser }) => {
 
             <div className="float" style={{ position: 'relative', display: 'inline-block' }}>
               <img
-                src="trio.png?v=1"
+                src="trio.webp?v=2"
                 alt="WardrobeForge trio"
+                decoding="async"
                 style={{
                   display: 'block',
                   width: 500,
@@ -196,8 +199,10 @@ const MainPage = ({ goto, currentUser }) => {
             <div className="why-wardrobe-copy" style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 24, alignItems: 'start' }}>
               <div className="why-wardrobe-visual" style={{ display: 'flex', justifyContent: 'center' }}>
                 <img
-                  src="heal.png"
+                  src="heal.webp"
                   alt="WardrobeForge heal icon"
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     display: 'block',
                     width: 220,

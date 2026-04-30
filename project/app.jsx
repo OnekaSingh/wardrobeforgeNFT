@@ -98,7 +98,7 @@ const Nav = ({ page, goto, currentUser }) => {
   return (
     <nav className="nav">
       <div className="logo" onClick={() => goto('main')}>
-        <img src="assets/logo.png?v=2" alt="WardrobeForge" />
+        <img src="assets/logo.webp?v=3" alt="WardrobeForge" decoding="async" />
         <span>WARDROBE<span style={{ color: 'var(--coral)' }}>FORGE</span></span>
       </div>
       <div className="links">

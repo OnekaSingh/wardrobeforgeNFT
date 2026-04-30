@@ -3,27 +3,27 @@
 const HAIRSTYLE_ASSET_BASE = 'hairstyles';
 
 const HAIRSTYLES = [
-  { id: 'hair-1', imageName: '1.png', thumb: 'hairstyle_props/4.png', name: 'Style 1', offsetX: -12, offsetY: 0 },
-  { id: 'hair-2', imageName: '2.png', thumb: 'hairstyle_props/3.png', name: 'Style 2', offsetX: -40, offsetY: 0 },
-  { id: 'hair-3', imageName: '3.png', thumb: 'hairstyle_props/6.png', name: 'Style 3', offsetX: 18, offsetY: -12 },
-  { id: 'hair-4', imageName: '4.png', thumb: 'hairstyle_props/5.png', name: 'Style 4', offsetX: 18, offsetY: -78, drawW: 1080 },
-  { id: 'hair-5', imageName: '5.png', thumb: 'hairstyle_props/1.png', name: 'Style 5', offsetX: 6, offsetY: -18 },
-  { id: 'hair-6', imageName: '6.png', thumb: 'hairstyle_props/2.png', name: 'Style 6', offsetX: 18, offsetY: -18 },
+  { id: 'hair-1', imageName: '1.webp', thumb: 'hairstyle_props/4.webp', name: 'Style 1', offsetX: -12, offsetY: 0 },
+  { id: 'hair-2', imageName: '2.webp', thumb: 'hairstyle_props/3.webp', name: 'Style 2', offsetX: -40, offsetY: 0 },
+  { id: 'hair-3', imageName: '3.webp', thumb: 'hairstyle_props/6.webp', name: 'Style 3', offsetX: 18, offsetY: -12 },
+  { id: 'hair-4', imageName: '4.webp', thumb: 'hairstyle_props/5.webp', name: 'Style 4', offsetX: 18, offsetY: -78, drawW: 1080 },
+  { id: 'hair-5', imageName: '5.webp', thumb: 'hairstyle_props/1.webp', name: 'Style 5', offsetX: 6, offsetY: -18 },
+  { id: 'hair-6', imageName: '6.webp', thumb: 'hairstyle_props/2.webp', name: 'Style 6', offsetX: 18, offsetY: -18 },
 ];
 
 const HAIR_COLORS = [
-  { id: 'black', name: 'Black', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/black.png` },
-  { id: 'brown', name: 'Brown', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/brown.png` },
-  { id: 'blonde', name: 'Blonde', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blonde.png` },
-  { id: 'red', name: 'Red', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/red.png` },
-  { id: 'pink', name: 'Pink', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/pink.png` },
-  { id: 'purple', name: 'Purple', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/purple.png` },
-  { id: 'blue', name: 'Blue', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blue.png` },
-  { id: 'cyan', name: 'Cyan', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cyan.png` },
-  { id: 'aqua', name: 'Aqua', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/aqua.png` },
-  { id: 'green', name: 'Green', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/green.png` },
-  { id: 'cosmo', name: 'Cosmo', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cosmo.png` },
-  { id: 'fade', name: 'Fade', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/fade.png` },
+  { id: 'black', name: 'Black', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/black.webp` },
+  { id: 'brown', name: 'Brown', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/brown.webp` },
+  { id: 'blonde', name: 'Blonde', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blonde.webp` },
+  { id: 'red', name: 'Red', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/red.webp` },
+  { id: 'pink', name: 'Pink', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/pink.webp` },
+  { id: 'purple', name: 'Purple', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/purple.webp` },
+  { id: 'blue', name: 'Blue', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/blue.webp` },
+  { id: 'cyan', name: 'Cyan', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cyan.webp` },
+  { id: 'aqua', name: 'Aqua', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/aqua.webp` },
+  { id: 'green', name: 'Green', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/green.webp` },
+  { id: 'cosmo', name: 'Cosmo', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/cosmo.webp` },
+  { id: 'fade', name: 'Fade', swatch: `${HAIRSTYLE_ASSET_BASE}/hairstyle_swatches/fade.webp` },
 ];
 
 const getHairstyleColorSrc = (hairstyle, hairColor) => (
@@ -31,12 +31,12 @@ const getHairstyleColorSrc = (hairstyle, hairColor) => (
 );
 
 const EAR_OVERLAY_BY_SKIN = {
-  porcelain: 'hairstyles/ears_1.png',
-  light: 'hairstyles/ears_2.png',
-  warm: 'hairstyles/ears_3.png',
-  tan: 'hairstyles/ears_4.png',
-  deep: 'hairstyles/ears_5.png',
-  rich: 'hairstyles/ears_6.png',
+  porcelain: 'hairstyles/ears_1.webp',
+  light: 'hairstyles/ears_2.webp',
+  warm: 'hairstyles/ears_3.webp',
+  tan: 'hairstyles/ears_4.webp',
+  deep: 'hairstyles/ears_5.webp',
+  rich: 'hairstyles/ears_6.webp',
 };
 
 const AVATAR_LOADOUT_STORAGE_KEY = 'wardrobeforge-avatar-loadout-v1';
@@ -254,7 +254,7 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
         <div className="vto-balance-actions">
           <span className="vto-balance-badge">
             <span className="chip">VTO POINTS</span>
-            <img className="vto-token-icon" src="assets/token.png" alt="VTO token" />
+            <img className="vto-token-icon" src="assets/token.webp" alt="VTO token" decoding="async" />
             <span className="pixel" style={{ fontSize: 18, color: 'var(--coral)' }}>{totalPoints.toLocaleString()}</span>
           </span>
           <button className="pxl-btn ghost vto-balance-topup-btn" onClick={() => goto('topup')}>TOP UP</button>
@@ -443,6 +443,8 @@ const AvatarPage = ({ initialEquip, currentUser, goto, openAuthModal, equipReque
                     <img
                       src={look.imageSrc}
                       alt={`Saved look ${savedLooks.length - index}`}
+                      loading="lazy"
+                      decoding="async"
                       style={{ width: '100%', height: 'auto', display: 'block', imageRendering: 'pixelated' }}
                     />
                   </div>
@@ -545,6 +547,8 @@ const SkinEyeSelectors = ({ skin, eye, hair, hairColor, setSkin, setEye, setHair
             <img
               src={h.thumb}
               alt={h.name}
+              loading="lazy"
+              decoding="async"
               style={{ width: '132%', height: '132%', objectFit: 'contain', imageRendering: 'pixelated' }}
             />
           </button>
@@ -594,6 +598,8 @@ const GearInventoryArt = ({ id, size = 96 }) => {
     <img
       src={gear.inventorySrc}
       alt={gear.name || id}
+      loading="lazy"
+      decoding="async"
       style={{
         width: '100%',
         height: '100%',
@@ -937,7 +943,7 @@ const AvatarImageWithEyeOverlay = ({ skin = 'light', eye = 'brown', hair = null,
 
       drawItemOverlay();
     };
-    img.src = 'clear_avatar.png?v=1';
+    img.src = 'clear_avatar.webp?v=2';
   }, [boots, earOverlaySrc, eye, hairStyle, hairStyleSrc, head, imageBoots, imageHead, imageItem, imageOutfit, irisColor, item, outfit, skinTone]);
 
   React.useEffect(() => {
