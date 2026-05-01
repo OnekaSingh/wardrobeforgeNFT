@@ -5,6 +5,7 @@ const { useState: useStateApp, useEffect: useEffectApp } = React;
 const getRouteFromHash = () => {
   const rawHash = String(window.location.hash || '');
   const normalizedHash = rawHash.replace(/^#\/?/, '');
+  if (normalizedHash === 'topup') return 'nfts';
   return normalizedHash || 'main';
 };
 
@@ -68,7 +69,6 @@ const App = () => {
         {page === 'main' && <MainPage goto={goto} currentUser={currentUser} />}
         {page === 'avatar' && <AvatarPage currentUser={currentUser} goto={goto} openAuthModal={openAuthModal} equipRequest={avatarEquipRequest} />}
         {page === 'nfts' && <NFTsPage initialId={nftFocus} goto={goto} currentUser={currentUser} openAuthModal={openAuthModal} />}
-        {page === 'topup' && <TopUpPage currentUser={currentUser} goto={goto} openAuthModal={openAuthModal} />}
         {page === 'account' && <AuthPage goto={goto} />}
         {page === 'contact' && <ContactPage />}
         {page === 'privacy' && <PrivacyPage />}
@@ -105,7 +105,6 @@ const Nav = ({ page, goto, currentUser }) => {
         <div className={`link ${page === 'main' ? 'active' : ''}`} onClick={() => goto('main')}>HOME</div>
         <div className={`link ${page === 'avatar' ? 'active' : ''}`} onClick={() => goto('avatar')}>MY AVATAR</div>
         <div className={`link ${page === 'nfts' ? 'active' : ''}`} onClick={() => goto('nfts')}>CLOTHING NFTS</div>
-        <div className={`link ${page === 'topup' ? 'active' : ''}`} onClick={() => goto('topup')}>TOP UP</div>
         <div className={`link ${page === 'contact' ? 'active' : ''}`} onClick={() => goto('contact')}>CONTACT</div>
         <div className={`link ${page === 'privacy' ? 'active' : ''}`} onClick={() => goto('privacy')}>PRIVACY</div>
         <div className={`link ${page === 'terms' ? 'active' : ''}`} onClick={() => goto('terms')}>TERMS</div>
@@ -137,7 +136,6 @@ const Footer = ({ goto }) => (
       <a onClick={() => goto('main')} style={{ cursor: 'pointer' }}>HOME</a>·
       <a onClick={() => goto('avatar')} style={{ cursor: 'pointer' }}>AVATAR</a>·
       <a onClick={() => goto('nfts')} style={{ cursor: 'pointer' }}>NFTS</a>·
-      <a onClick={() => goto('topup')} style={{ cursor: 'pointer' }}>TOP UP</a>·
       <a onClick={() => goto('account')} style={{ cursor: 'pointer' }}>SIGN IN</a>·
       <a onClick={() => goto('privacy')} style={{ cursor: 'pointer' }}>PRIVACY</a>·
       <a onClick={() => goto('terms')} style={{ cursor: 'pointer' }}>TERMS</a>

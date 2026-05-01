@@ -52,7 +52,7 @@ const NON_STARTER_NFT_LIBRARY = [...GENERATED_GEAR_LIBRARY];
 const HIDDEN_BROWSE_NFT_IDS = new Set(STARTER_GEAR_LIBRARY.map((item) => item.id));
 const BROWSABLE_NFT_LIBRARY = GENERATED_GEAR_LIBRARY.filter(item => !HIDDEN_BROWSE_NFT_IDS.has(item.id));
 
-const CRATE_PRICE_VTO = 100;
+const CRATE_PRICE_USD = 2.99;
 const CRATE_DEFINITIONS = [
   {
     id: 'crate-sunflare',
@@ -88,7 +88,7 @@ const SLOT_OFFSET = { outfit: 0, item: 1, boots: 2, head: 1 };
 const createCrateBuckets = () => (
   CRATE_DEFINITIONS.map((crate) => ({
     ...crate,
-    priceVto: CRATE_PRICE_VTO,
+    priceUsd: CRATE_PRICE_USD,
     contents: [],
     rarityCounts: {},
   }))
@@ -148,6 +148,6 @@ const RARITY_COLOR = {
 window.NFT_LIBRARY = NFT_LIBRARY;
 window.BROWSABLE_NFT_LIBRARY = BROWSABLE_NFT_LIBRARY;
 window.CRATE_LIBRARY = CRATE_LIBRARY;
-window.CRATE_PRICE_VTO = CRATE_PRICE_VTO;
+window.CRATE_PRICE_USD = CRATE_PRICE_USD;
 window.RARITY_COLOR = RARITY_COLOR;
 window.IMAGE_GEAR_MAP = IMAGE_GEAR_MAP;

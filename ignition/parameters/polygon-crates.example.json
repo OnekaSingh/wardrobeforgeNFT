@@ -1,0 +1,7 @@
+{
+  "WardrobeForgeCrates1155Module": {
+    "initialOwner": "0xYourOwnerWallet",
+    "initialTreasury": "0xYourTreasuryWallet",
+    "baseMetadataURI": "ipfs://wardrobeforge-metadata/"
+  }
+}

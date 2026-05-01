@@ -44,7 +44,7 @@ const PrivacyPage = () => (
       <ul>
         <li>To present the Services and their contents to you and operate your account, wallet connections, and marketplace activity.</li>
         <li>To mint, transfer, display, and verify ownership of NFTs and virtual items associated with your account or wallet.</li>
-        <li>To award, calculate, and apply VTO Points (including the one-hundred (100) point credit per qualifying NFT mint).</li>
+        <li>To award, calculate, and apply wardrobe progression, collection bonuses, and other account-linked rewards tied to qualifying NFT activity.</li>
         <li>To detect fraud, abuse, unauthorized activity, and marketplace policy violations.</li>
         <li>To improve our Services and develop new features, including AI-driven try-on rendering.</li>
         <li>To comply with legal obligations and to enforce our Terms of Service.</li>
@@ -166,8 +166,7 @@ const TermsPage = () => (
       <p>
         WardrobeForge offers blockchain-based non-fungible tokens ("NFTs") and virtual wearable items for use within
         our Services. NFTs may be minted to a blockchain address you control and may represent digital collectibles,
-        in-platform utility, avatar wearables, or a one-time award of one hundred (100) points ("VTO Points") in our
-        virtual try-on application.
+        in-platform utility, avatar wearables, or progression-linked rewards in our virtual try-on application.
       </p>
       <h3>2.2 Random Allocation</h3>
       <p>
@@ -189,7 +188,7 @@ const TermsPage = () => (
         <li>Digital delivery is completed when the applicable NFT or virtual item is made available in your WardrobeForge account, connected wallet, or both.</li>
         <li>You are solely responsible for providing and maintaining an accurate wallet address and compatible wallet access. Transactions sent to an incorrect wallet address may be irreversible.</li>
         <li>Unless otherwise required by law or expressly stated by WardrobeForge, purchases of NFTs and virtual items are final and non-refundable.</li>
-        <li>VTO Points awarded for a reversed, refunded, or disputed transaction are subject to claw-back.</li>
+        <li>Any off-chain rewards or progression granted for a reversed, refunded, or disputed transaction are subject to claw-back.</li>
       </ul>
 
       <h2>5. INTELLECTUAL PROPERTY</h2>
