@@ -12,9 +12,11 @@ const getRouteFromHash = () => {
 const App = () => {
   const authApi = window.WardrobeForgeAuth;
   const AuthModalComponent = window.AuthModal;
+  const CheckoutPageComponent = window.CheckoutPage;
   const [page, setPage] = useStateApp(() => getRouteFromHash());
   const [nftFocus, setNftFocus] = useStateApp(null);
   const [avatarEquipRequest, setAvatarEquipRequest] = useStateApp(null);
+  const [checkoutSession, setCheckoutSession] = useStateApp(null);
   const [currentUser, setCurrentUser] = useStateApp(() => authApi?.getCurrentUser?.() || null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useStateApp(false);
   const [tweaks, setTweak] = useTweaks(/*EDITMODE-BEGIN*/{
@@ -29,10 +31,13 @@ const App = () => {
     document.documentElement.style.fontSize = (16 * tweaks.fontScale) + 'px';
   }, [tweaks.accent, tweaks.fontScale]);
 
-  const goto = (p, focus, equipRequest = null) => {
+  const goto = (p, focus, equipRequest = null, options = null) => {
     setPage(p);
     if (focus) setNftFocus(focus);
     if (equipRequest) setAvatarEquipRequest(equipRequest);
+    if (options && Object.prototype.hasOwnProperty.call(options, 'checkoutSession')) {
+      setCheckoutSession(options.checkoutSession);
+    }
     window.location.hash = `/${p}`;
     window.scrollTo(0, 0);
   };
@@ -69,6 +74,7 @@ const App = () => {
         {page === 'main' && <MainPage goto={goto} currentUser={currentUser} />}
         {page === 'avatar' && <AvatarPage currentUser={currentUser} goto={goto} openAuthModal={openAuthModal} equipRequest={avatarEquipRequest} />}
         {page === 'nfts' && <NFTsPage initialId={nftFocus} goto={goto} currentUser={currentUser} openAuthModal={openAuthModal} />}
+        {page === 'checkout' && CheckoutPageComponent && <CheckoutPageComponent currentUser={currentUser} checkoutSession={checkoutSession} goto={goto} openAuthModal={openAuthModal} />}
         {page === 'account' && <AuthPage goto={goto} />}
         {page === 'contact' && <ContactPage />}
         {page === 'privacy' && <PrivacyPage />}
