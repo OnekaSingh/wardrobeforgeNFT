@@ -1117,12 +1117,15 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
 }
 .crate-open-shell{
   width: min(920px, 100%);
+  max-height: calc(100vh - 48px);
 }
 .crate-open-panel{
   position: relative;
-  padding: 26px 26px 32px;
+  padding: 22px 22px 26px;
   text-align: center;
   overflow: hidden;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 .crate-open-panel-revealed{
   min-height: 720px;
@@ -1181,32 +1184,33 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   background: rgba(42,27,27,.88);
 }
 .crate-open-stage{
-  min-height: 430px;
+  min-height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 .crate-open-image{
-  width: min(320px, 68vw);
+  width: min(220px, 46vw);
   height: auto;
   image-rendering: pixelated;
-  filter: drop-shadow(0 24px 0 rgba(255,161,56,.22));
+  filter: drop-shadow(0 14px 0 rgba(255,161,56,.22));
 }
 .crate-open-title{
-  font-size: 22px;
-  margin-bottom: 10px;
+  font-size: 18px;
+  margin-bottom: 8px;
 }
 .crate-open-subtitle{
-  font-size: 24px;
+  font-size: 18px;
   opacity: .8;
+  margin-bottom: 12px;
 }
 .crate-reveal-card{
   margin: 0 auto;
   max-width: 420px;
   width: min(420px, 100%);
   background: transparent;
-  padding: 20px 22px 24px;
+  padding: 8px 8px 16px;
 }
 .crate-auth-code{
   margin: 0 auto 18px;
@@ -1219,6 +1223,35 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   font-size: 9px;
   color: var(--coral-deep);
   margin-bottom: 8px;
+}
+@media (max-width: 900px){
+  .crate-open-backdrop{
+    padding: 12px;
+  }
+  .crate-open-shell,
+  .crate-open-panel{
+    max-height: calc(100vh - 24px);
+  }
+  .crate-open-stage{
+    min-height: 160px;
+  }
+  .crate-open-image{
+    width: min(170px, 52vw);
+  }
+}
+@media (max-width: 600px){
+  .crate-open-panel{
+    padding: 18px 14px 20px;
+  }
+  .crate-open-title{
+    font-size: 16px;
+  }
+  .crate-open-subtitle{
+    font-size: 16px;
+  }
+  .crate-open-meta{
+    margin-bottom: 12px;
+  }
 }
 .crate-auth-code-value{
   font-size: 17px;

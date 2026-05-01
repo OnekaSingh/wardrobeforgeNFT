@@ -28,7 +28,6 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     message: '',
   });
   const crateSectionRef = React.useRef(null);
-  const [checkoutWalletAddress, setCheckoutWalletAddress] = useState(accountSnapshot.walletAddress || '');
   const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   const selected = catalog.find(n => n.id === selectedId) || catalog[0];
@@ -83,10 +82,6 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const selectedItemStars = selected?.owned ? Math.max(1, Math.min(3, Number(selected?.starPower) || 1)) : 0;
   const selectedTotalXp = selectedItemXp * (selectedItemStars || 1);
 
-  React.useEffect(() => {
-    setCheckoutWalletAddress(accountSnapshot.walletAddress || '');
-  }, [accountSnapshot.walletAddress, crateModalState.open]);
-
   const attributeLegendSections = React.useMemo(() => {
     const countBy = (getter) => catalog.reduce((counts, item) => {
       const key = getter(item);
@@ -137,7 +132,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       crateId: crate.id,
       quantity: 1,
       totalUsd: Number((crate.priceUsd || 0).toFixed(2)),
-      message: 'Checkout is now quantity-based: one payment covers the exact number of crate unboxes you select.',
+      message: '',
     });
   };
 
@@ -154,28 +149,27 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   };
 
   const handleProceedToCheckout = () => {
-    const cleanWalletAddress = String(checkoutWalletAddress || '').trim();
-
-    if (!/^0x[a-fA-F0-9]{40}$/.test(cleanWalletAddress)) {
-      setCrateModalState((current) => ({
-        ...current,
-        message: 'Enter a valid Polygon wallet address so purchased items can mint to the right account.',
-      }));
-      return;
-    }
-
     const backendBaseUrl = window.WardrobeForgeAuth?.getBackendBaseUrl?.() || '';
     const checkoutEndpoint = `${backendBaseUrl.replace(/\/+$/, '')}/api/wert/create-checkout`;
 
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
-      message: `Preparing checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`,
+      message: accountSnapshot.walletAddress
+        ? `Preparing checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`
+        : 'Creating your embedded wallet...',
     }));
 
     Promise.resolve()
       .then(async () => {
-        await window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser?.id, cleanWalletAddress);
+        const walletAddress = accountSnapshot.walletAddress
+          || await window.WardrobeForgeWallet?.ensureEmbeddedWallet?.({ user: currentUser });
+
+        if (!/^0x[a-fA-F0-9]{40}$/.test(String(walletAddress || '').trim())) {
+          throw new Error('Could not secure an embedded Polygon wallet for checkout.');
+        }
+
+        await window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser?.id, walletAddress);
 
         const checkoutResponse = await fetch(checkoutEndpoint, {
           method: 'POST',
@@ -185,7 +179,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
           body: JSON.stringify({
             crateKey: modalCrate.id,
             quantity: crateModalState.quantity,
-            recipientWallet: cleanWalletAddress,
+            recipientWallet: walletAddress,
             userId: currentUser?.id || null,
             displayName: currentUser?.displayName || null,
             buyerEmail: currentUser?.email || null,
@@ -431,29 +425,11 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                 <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
               </div>
               <div className="pixel crate-open-title">CHECKOUT PREVIEW</div>
-              <div className="mono crate-open-subtitle">{crateModalState.message}</div>
+              {crateModalState.message ? <div className="mono crate-open-subtitle">{crateModalState.message}</div> : null}
               <div className="crate-reveal-card">
                 <div className="chip coral" style={{ marginBottom: 14 }}>ORDER SUMMARY</div>
                 <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
                 <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
-                <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
-                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 8 }}>RECIPIENT WALLET</div>
-                  <input
-                    type="text"
-                    value={checkoutWalletAddress}
-                    onChange={(event) => setCheckoutWalletAddress(event.target.value)}
-                    placeholder="0x..."
-                    spellCheck="false"
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    className="auth-input"
-                    style={{ width: '100%', marginBottom: 10 }}
-                    aria-label="Recipient Polygon wallet address"
-                  />
-                  <p className="mono" style={{ fontSize: 16, lineHeight: 1.4, opacity: 0.75, margin: 0 }}>
-                    Crate rewards mint directly to this Polygon wallet when Wert completes the onchain payment.
-                  </p>
-                </div>
                 <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
                     <div>
@@ -476,13 +452,21 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                     aria-label="Select crate quantity"
                   />
                 </div>
+                <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
+                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 8 }}>EMBEDDED WALLET</div>
+                  <div className="mono" style={{ fontSize: 16, lineHeight: 1.4, marginBottom: 10 }}>
+                    {accountSnapshot.walletAddress
+                      ? `${accountSnapshot.walletAddress.slice(0, 6)}...${accountSnapshot.walletAddress.slice(-4)}`
+                      : 'A Polygon wallet will be created automatically for your account during secure checkout setup.'}
+                  </div>
+                  <p className="mono" style={{ fontSize: 16, lineHeight: 1.4, opacity: 0.75, margin: 0 }}>
+                    Crate rewards mint directly to your wallet.
+                  </p>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
                   <span className="chip">{formatUsd(modalCrateUnitPrice)} each</span>
                   <span className="chip coral">TOTAL {formatUsd(modalCrateTotal)}</span>
                 </div>
-                <p className="mono" style={{ fontSize: 18, lineHeight: 1.45, marginBottom: 18 }}>
-                  Choose the number of crates here, then continue into checkout with the exact quantity and total locked in.
-                </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <button className="pxl-btn ghost" onClick={closeCrateModal}>CLOSE</button>
                   <button className="pxl-btn" onClick={handleProceedToCheckout} disabled={checkoutBusy}>
