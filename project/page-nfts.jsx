@@ -149,9 +149,6 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   };
 
   const handleProceedToCheckout = () => {
-    const backendBaseUrl = window.WardrobeForgeAuth?.getBackendBaseUrl?.() || '';
-    const checkoutEndpoint = `${backendBaseUrl.replace(/\/+$/, '')}/api/wert/create-checkout`;
-
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
@@ -170,37 +167,29 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
         }
 
         await window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser?.id, walletAddress);
-
-        const checkoutResponse = await fetch(checkoutEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            crateKey: modalCrate.id,
-            quantity: crateModalState.quantity,
-            recipientWallet: walletAddress,
-            userId: currentUser?.id || null,
-            displayName: currentUser?.displayName || null,
-            buyerEmail: currentUser?.email || null,
-          }),
-        });
-
-        const checkoutPayload = await checkoutResponse.json().catch(() => null);
-        if (!checkoutResponse.ok) {
-          throw new Error(checkoutPayload?.message || 'Could not start Wert checkout right now.');
+        closeCrateModal();
+        if (goto) {
+          goto('checkout', null, null, {
+            checkoutSession: {
+              crateId: modalCrate.id,
+              crateName: modalCrate.name,
+              quantity: crateModalState.quantity,
+              totalUsd: modalCrateTotal,
+              totalLabel: formatUsd(modalCrateTotal),
+              walletAddress,
+            },
+          });
+        } else {
+          setCrateModalState((current) => ({
+            ...current,
+            message: 'Wallet created. Checkout staging page is ready.',
+          }));
         }
-
-        if (!checkoutPayload?.checkoutUrl) {
-          throw new Error('Wert did not return a checkout link.');
-        }
-
-        window.location.href = checkoutPayload.checkoutUrl;
       })
       .catch((error) => {
         setCrateModalState((current) => ({
           ...current,
-          message: error.message || 'Could not start Wert checkout right now.',
+          message: error.message || 'Could not prepare the checkout page right now.',
         }));
       })
       .finally(() => {
