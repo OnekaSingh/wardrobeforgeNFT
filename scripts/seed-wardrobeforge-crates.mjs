@@ -29,6 +29,12 @@ async function loadSeedConfig(configPath) {
   return parsed;
 }
 
+async function writeAndWait(publicClient, writePromise) {
+  const hash = await writePromise;
+  await publicClient.waitForTransactionReceipt({ hash });
+  return hash;
+}
+
 async function main() {
   const contractAddress = process.env.CONTRACT_ADDRESS;
   if (!contractAddress) {
@@ -39,6 +45,7 @@ async function main() {
   const config = await loadSeedConfig(configPath);
 
   const { viem } = await network.create();
+  const publicClient = await viem.getPublicClient();
   const [deployer] = await viem.getWalletClients();
   const contract = await viem.getContractAt("WardrobeForgeCrates1155", contractAddress);
 
@@ -47,31 +54,43 @@ async function main() {
 
   if (typeof config.baseMetadataURI === "string" && config.baseMetadataURI.length > 0) {
     console.log(`- setting base metadata URI to ${config.baseMetadataURI}`);
-    await contract.write.setBaseMetadataURI([config.baseMetadataURI], {
-      account: deployer.account,
-    });
+    await writeAndWait(
+      publicClient,
+      contract.write.setBaseMetadataURI([config.baseMetadataURI], {
+        account: deployer.account,
+      }),
+    );
   }
 
   if (typeof config.payerAllowlistEnabled === "boolean") {
     console.log(`- setting payer allowlist mode to ${config.payerAllowlistEnabled}`);
-    await contract.write.setPayerAllowlistEnabled([config.payerAllowlistEnabled], {
-      account: deployer.account,
-    });
+    await writeAndWait(
+      publicClient,
+      contract.write.setPayerAllowlistEnabled([config.payerAllowlistEnabled], {
+        account: deployer.account,
+      }),
+    );
   }
 
   for (const payer of config.approvedPayers || []) {
     console.log(`- approving payer ${payer}`);
-    await contract.write.setApprovedPayer([payer, true], {
-      account: deployer.account,
-    });
+    await writeAndWait(
+      publicClient,
+      contract.write.setApprovedPayer([payer, true], {
+        account: deployer.account,
+      }),
+    );
   }
 
   for (const tokenId of config.itemTokens) {
     const parsedTokenId = toBigInt(tokenId, "itemTokens");
     console.log(`- enabling item token ${parsedTokenId}`);
-    await contract.write.setItemTokenEnabled([parsedTokenId, true], {
-      account: deployer.account,
-    });
+    await writeAndWait(
+      publicClient,
+      contract.write.setItemTokenEnabled([parsedTokenId, true], {
+        account: deployer.account,
+      }),
+    );
   }
 
   for (const crate of config.crates) {
@@ -80,9 +99,12 @@ async function main() {
     const maxQuantityPerTx = Number(crate.maxQuantityPerTx);
 
     console.log(`- configuring crate ${crateId} with price ${priceWei} wei`);
-    await contract.write.configureCrate(
-      [crateId, priceWei, maxQuantityPerTx, Boolean(crate.active)],
-      { account: deployer.account },
+    await writeAndWait(
+      publicClient,
+      contract.write.configureCrate(
+        [crateId, priceWei, maxQuantityPerTx, Boolean(crate.active)],
+        { account: deployer.account },
+      ),
     );
 
     const rewards = (crate.rewards || []).map((reward, index) => ({
@@ -92,9 +114,12 @@ async function main() {
     }));
 
     console.log(`- replacing reward table for crate ${crateId} with ${rewards.length} entries`);
-    await contract.write.replaceCrateRewards([crateId, rewards], {
-      account: deployer.account,
-    });
+    await writeAndWait(
+      publicClient,
+      contract.write.replaceCrateRewards([crateId, rewards], {
+        account: deployer.account,
+      }),
+    );
   }
 
   console.log("Seed complete.");
