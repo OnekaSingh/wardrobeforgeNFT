@@ -20,6 +20,7 @@ const AUTHENTICITY_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 const trimValue = (value) => String(value || '').trim();
+const normalizeWalletAddress = (walletAddress) => trimValue(walletAddress);
 
 const getBackendBaseUrl = () => {
   const queryParamValue = new URLSearchParams(window.location.search).get('backend');
@@ -114,6 +115,7 @@ const writeSingleStoredAccount = (user, accountSource = null) => {
     displayName: normalizedUser.displayName,
     email: normalizedUser.email,
     createdAt: sourceAccount?.createdAt || normalizedUser.createdAt,
+    walletAddress: getUserWalletAddressValue(sourceAccount),
     ownedArtIds: getUserOwnedArtIdsValue(sourceAccount),
     itemStars: getUserItemStarsValue(sourceAccount),
     authenticityCodes: getUserAuthenticityCodesValue(sourceAccount),
@@ -181,6 +183,8 @@ const getUserBalanceValue = (account) => {
   const balance = Number(account?.vtoBalance);
   return Number.isFinite(balance) ? balance : STARTER_VTO_BALANCE;
 };
+
+const getUserWalletAddressValue = (account) => normalizeWalletAddress(account?.walletAddress);
 
 const getUserOwnedArtIdsValue = (account) => {
   const ownedArtIds = Array.isArray(account?.ownedArtIds) ? account.ownedArtIds.filter(Boolean) : [];
@@ -294,6 +298,7 @@ const updateStoredAccount = (userId, mutator) => {
   const currentAccount = upsertLocalAccountState(baseUser);
   const nextAccount = mutator({
     ...currentAccount,
+    walletAddress: getUserWalletAddressValue(currentAccount),
     ownedArtIds: getUserOwnedArtIdsValue(currentAccount),
     itemStars: getUserItemStarsValue(currentAccount),
     authenticityCodes: getUserAuthenticityCodesValue(currentAccount),
@@ -314,6 +319,7 @@ const updateStoredAccount = (userId, mutator) => {
     displayName: trimValue(nextAccount.displayName || baseUser.displayName),
     email: normalizeEmail(nextAccount.email || baseUser.email),
     createdAt: nextAccount.createdAt || baseUser.createdAt,
+    walletAddress: getUserWalletAddressValue(nextAccount),
     ownedArtIds: getUserOwnedArtIdsValue(nextAccount),
     itemStars: getUserItemStarsValue(nextAccount),
     authenticityCodes: getUserAuthenticityCodesValue(nextAccount),
@@ -335,6 +341,7 @@ const getAccountSnapshot = (userId = null) => {
     return {
       balance: STARTER_VTO_BALANCE,
       xp: STARTER_ACCOUNT_XP,
+      walletAddress: '',
       ownedArtIds: [...STARTER_OWNED_ART_IDS],
       itemStars: Object.fromEntries(STARTER_OWNED_ART_IDS.map((artId) => [artId, 1])),
       authenticityCodes: getUserAuthenticityCodesValue({ ownedArtIds: STARTER_OWNED_ART_IDS }),
@@ -345,6 +352,7 @@ const getAccountSnapshot = (userId = null) => {
   return {
     balance: getUserBalanceValue(account),
     xp: getUserXpValue(account),
+    walletAddress: getUserWalletAddressValue(account),
     ownedArtIds: getUserOwnedArtIdsValue(account),
     itemStars: getUserItemStarsValue(account),
     authenticityCodes: getUserAuthenticityCodesValue(account),
@@ -574,6 +582,7 @@ const syncStoredAccountSnapshot = (userId, snapshot) => {
 
   const nextAccount = writeSingleStoredAccount(normalizedUser, {
     ...snapshot,
+    walletAddress: snapshot.walletAddress,
     ownedArtIds: snapshot.ownedArtIds,
     itemStars: snapshot.itemStars,
     authenticityCodes: snapshot.authenticityCodes,
@@ -665,6 +674,18 @@ const saveAvatarState = async ({ userId, equipped, savedLooks }) => {
 };
 
 const getCurrentToken = () => trimValue(readStoredSession()?.token);
+
+const saveWalletAddress = (userId, walletAddress) => {
+  const cleanWalletAddress = normalizeWalletAddress(walletAddress);
+  if (!cleanWalletAddress) {
+    throw new Error('Enter a wallet address before continuing.');
+  }
+
+  return updateStoredAccount(userId, (account) => ({
+    ...account,
+    walletAddress: cleanWalletAddress,
+  }));
+};
 
 const getPerUserFlagKey = (baseKey, userId) => `${baseKey}:${userId}`;
 
@@ -1325,6 +1346,7 @@ window.WardrobeForgeAuth = {
   redeemSquareTopUpReward,
   refreshSession,
   saveAvatarState,
+  saveWalletAddress,
   sendVerificationCode,
   setBackendBaseUrl,
   setCurrentUser,
