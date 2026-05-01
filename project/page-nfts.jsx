@@ -28,6 +28,8 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     message: '',
   });
   const crateSectionRef = React.useRef(null);
+  const [checkoutWalletAddress, setCheckoutWalletAddress] = useState(accountSnapshot.walletAddress || '');
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   const selected = catalog.find(n => n.id === selectedId) || catalog[0];
   const selectedCrate = crates.find((crate) => crate.id === selectedCrateId) || crates[0];
@@ -80,6 +82,11 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const selectedItemXp = getItemXpBonus(selected);
   const selectedItemStars = selected?.owned ? Math.max(1, Math.min(3, Number(selected?.starPower) || 1)) : 0;
   const selectedTotalXp = selectedItemXp * (selectedItemStars || 1);
+
+  React.useEffect(() => {
+    setCheckoutWalletAddress(accountSnapshot.walletAddress || '');
+  }, [accountSnapshot.walletAddress, crateModalState.open]);
+
   const attributeLegendSections = React.useMemo(() => {
     const countBy = (getter) => catalog.reduce((counts, item) => {
       const key = getter(item);
@@ -147,10 +154,64 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   };
 
   const handleProceedToCheckout = () => {
+    const cleanWalletAddress = String(checkoutWalletAddress || '').trim();
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(cleanWalletAddress)) {
+      setCrateModalState((current) => ({
+        ...current,
+        message: 'Enter a valid Polygon wallet address so purchased items can mint to the right account.',
+      }));
+      return;
+    }
+
+    const backendBaseUrl = window.WardrobeForgeAuth?.getBackendBaseUrl?.() || '';
+    const checkoutEndpoint = `${backendBaseUrl.replace(/\/+$/, '')}/api/wert/create-checkout`;
+
+    setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
-      message: `Next step: redirect signed-in users into checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}.`,
+      message: `Preparing checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`,
     }));
+
+    Promise.resolve()
+      .then(async () => {
+        await window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser?.id, cleanWalletAddress);
+
+        const checkoutResponse = await fetch(checkoutEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            crateKey: modalCrate.id,
+            quantity: crateModalState.quantity,
+            recipientWallet: cleanWalletAddress,
+            userId: currentUser?.id || null,
+            displayName: currentUser?.displayName || null,
+            buyerEmail: currentUser?.email || null,
+          }),
+        });
+
+        const checkoutPayload = await checkoutResponse.json().catch(() => null);
+        if (!checkoutResponse.ok) {
+          throw new Error(checkoutPayload?.message || 'Could not start Wert checkout right now.');
+        }
+
+        if (!checkoutPayload?.checkoutUrl) {
+          throw new Error('Wert did not return a checkout link.');
+        }
+
+        window.location.href = checkoutPayload.checkoutUrl;
+      })
+      .catch((error) => {
+        setCrateModalState((current) => ({
+          ...current,
+          message: error.message || 'Could not start Wert checkout right now.',
+        }));
+      })
+      .finally(() => {
+        setCheckoutBusy(false);
+      });
   };
 
   return (
@@ -376,6 +437,24 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                 <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
                 <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
                 <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
+                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 8 }}>RECIPIENT WALLET</div>
+                  <input
+                    type="text"
+                    value={checkoutWalletAddress}
+                    onChange={(event) => setCheckoutWalletAddress(event.target.value)}
+                    placeholder="0x..."
+                    spellCheck="false"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    className="auth-input"
+                    style={{ width: '100%', marginBottom: 10 }}
+                    aria-label="Recipient Polygon wallet address"
+                  />
+                  <p className="mono" style={{ fontSize: 16, lineHeight: 1.4, opacity: 0.75, margin: 0 }}>
+                    Crate rewards mint directly to this Polygon wallet when Wert completes the onchain payment.
+                  </p>
+                </div>
+                <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
                     <div>
                       <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 6 }}>CRATE QUANTITY</div>
@@ -406,7 +485,9 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <button className="pxl-btn ghost" onClick={closeCrateModal}>CLOSE</button>
-                  <button className="pxl-btn" onClick={handleProceedToCheckout}>BUY {crateModalState.quantity} FOR {formatUsd(modalCrateTotal)}</button>
+                  <button className="pxl-btn" onClick={handleProceedToCheckout} disabled={checkoutBusy}>
+                    {checkoutBusy ? 'CONNECTING...' : `BUY ${crateModalState.quantity} FOR ${formatUsd(modalCrateTotal)}`}
+                  </button>
                 </div>
               </div>
             </div>
