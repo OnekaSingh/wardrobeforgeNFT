@@ -14,9 +14,9 @@ const CommissionPage = () => (
       </p>
 
       <div className="commission-grid">
-        <div className="contact-card">
+        <div className="contact-card commission-sections-card">
           <h2>OPEN SECTIONS</h2>
-          <ul>
+          <ul className="commission-sections-list">
             <li>Boots</li>
             <li>Wand</li>
             <li>Outfit</li>

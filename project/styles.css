@@ -1341,6 +1341,27 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   border: 4px solid var(--ink);
   box-shadow: 0 6px 0 0 var(--coral);
 }
+.commission-sections-card{
+  overflow: hidden;
+}
+.commission-sections-list{
+  list-style: disc;
+  padding-left: 42px;
+  margin: 18px 0 0;
+}
+.commission-sections-list li{
+  margin: 0;
+  padding: 16px 18px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #fff3f6 0 18px,
+    #ffffff 18px 36px
+  );
+  border-top: 3px solid rgba(42,27,27,.12);
+}
+.commission-sections-list li:first-child{
+  border-top: 0;
+}
 .contact-card p{
   margin-bottom: 0;
   font-size: 26px;
