@@ -9,9 +9,9 @@ const AUTH_BACKEND_URL_STORAGE_KEY = 'wardrobeforge-backend-url';
 const AUTH_LOCAL_CREDENTIALS_STORAGE_KEY = 'wardrobeforge-auth-local-credentials-v1';
 const AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY = 'wardrobeforge-auth-local-verification-codes-v1';
 const STARTER_OWNED_ART_IDS = ['base-outfit', 'base-shoes'];
-const STARTER_VTO_BALANCE = 100;
+const STARTER_VTO_BALANCE = 300;
 const STARTER_ACCOUNT_XP = 0;
-const LEGACY_STARTER_VTO_BALANCES = new Set([300, 800]);
+const LEGACY_STARTER_VTO_BALANCES = new Set([800]);
 const DEFAULT_BACKEND_BASE_URL = 'https://api.wardrobeforge.com';
 const LOCAL_SESSION_TOKEN_PREFIX = 'wf_local_session_';
 const AUTHENTICITY_CODE_PART_LENGTH = 10;
@@ -906,7 +906,7 @@ const addVtoBalance = ({ userId, amount }) => {
 
   console.warn(
     `Blocked client-side VTO balance credit of ${safeAmount} for ${trimValue(userId) || 'guest'}. ` +
-    'Top-ups must come from a verified Square payment confirmation on the backend.',
+    'Top-ups must come from a verified payment confirmation on the backend.',
   );
 
   return {
@@ -974,7 +974,7 @@ const spendVtoAndGrantItem = async ({ userId, cost, artId, xpAmount = 0 }) => {
   };
 };
 
-const redeemSquareTopUpReward = async ({ userId, claimId, tokens, bonusArt = null }) => {
+const redeemTopUpReward = async ({ userId, claimId, tokens, bonusArt = null }) => {
   const cleanUserId = trimValue(userId);
   const cleanClaimId = trimValue(claimId);
   const tokenAmount = Math.max(0, Number(tokens) || 0);
@@ -984,11 +984,11 @@ const redeemSquareTopUpReward = async ({ userId, claimId, tokens, bonusArt = nul
   }
 
   if (!cleanClaimId) {
-    throw new Error('Missing Square claim reference.');
+    throw new Error('Missing top-up claim reference.');
   }
 
   if (tokenAmount <= 0) {
-    throw new Error('Top-up reward did not include any VTO.');
+    throw new Error('Top-up reward did not include any coins.');
   }
 
   const token = getCurrentToken();
@@ -1055,6 +1055,8 @@ const redeemSquareTopUpReward = async ({ userId, claimId, tokens, bonusArt = nul
     authenticityCodes: getUserAuthenticityCodesValue(nextAccount),
   };
 };
+
+const redeemSquareTopUpReward = redeemTopUpReward;
 
 const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null }) => {
   const [mode, setMode] = React.useState('signup');
@@ -1344,6 +1346,7 @@ window.WardrobeForgeAuth = {
   logOut,
   readStoredAccounts,
   redeemSquareTopUpReward,
+  redeemTopUpReward,
   refreshSession,
   saveAvatarState,
   saveWalletAddress,

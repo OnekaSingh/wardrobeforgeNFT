@@ -3,6 +3,7 @@
 const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const baseCatalog = window.BROWSABLE_NFT_LIBRARY || NFT_LIBRARY;
   const crates = window.CRATE_LIBRARY || [];
+  const crateCoinPrice = Number(window.CRATE_PRICE_COINS || 100);
   const formatUsd = (amount) => `$${amount.toFixed(2)}`;
   const accountSnapshot = React.useMemo(
     () => window.WardrobeForgeAuth?.getAccountSnapshot?.(currentUser?.id) || { xp: 0, ownedArtIds: ['base-outfit', 'base-shoes'], itemStars: { 'base-outfit': 1, 'base-shoes': 1 } },
@@ -36,6 +37,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const selectedCrateUnitPrice = Number(selectedCrate?.priceUsd || 0);
   const modalCrateUnitPrice = Number(modalCrate?.priceUsd || 0);
   const modalCrateTotal = Number((modalCrateUnitPrice * crateModalState.quantity).toFixed(2));
+  const modalCrateCoinTotal = crateCoinPrice * crateModalState.quantity;
   const getCrateRaritySummary = (crate) => ([
     { label: 'COMMON', value: crate?.rarityCounts?.Common || 0, className: 'pink' },
     { label: 'RARE', value: crate?.rarityCounts?.Rare || 0, className: 'sky' },
@@ -148,48 +150,119 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     });
   };
 
-  const handleProceedToCheckout = () => {
+  const rollCrateReward = (crate) => {
+    const pool = Array.isArray(crate?.contents) ? crate.contents : [];
+    if (!pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)] || null;
+  };
+
+  const grantRewards = async ({ quantity, coinCostPerCrate }) => {
+    const rewards = [];
+
+    for (let index = 0; index < quantity; index += 1) {
+      const reward = rollCrateReward(modalCrate);
+      if (!reward?.art) {
+        throw new Error('This crate is missing reward items.');
+      }
+
+      const claimResult = await window.WardrobeForgeAuth?.spendVtoAndGrantItem?.({
+        userId: currentUser.id,
+        cost: coinCostPerCrate,
+        artId: reward.art,
+        xpAmount: Number(reward.pointsBonus) || 0,
+      });
+
+      rewards.push({
+        art: reward.art,
+        id: reward.id,
+        name: reward.name,
+        rarity: reward.rarity,
+        slot: reward.slot,
+        inventorySrc: reward.inventorySrc || reward.avatarSrc || '',
+        authenticityCode: claimResult?.grantedAuthenticityCode || '',
+      });
+    }
+
+    return rewards;
+  };
+
+  const handleCoinCheckout = () => {
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
-      message: accountSnapshot.walletAddress
-        ? `Preparing checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`
-        : 'Creating your embedded wallet...',
+      message: `Opening ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'} with coins...`,
     }));
 
     Promise.resolve()
       .then(async () => {
-        const walletAddress = accountSnapshot.walletAddress
-          || await window.WardrobeForgeWallet?.ensureEmbeddedWallet?.({ user: currentUser });
+        const rewards = await grantRewards({
+          quantity: crateModalState.quantity,
+          coinCostPerCrate: crateCoinPrice,
+        });
 
-        if (!/^0x[a-fA-F0-9]{40}$/.test(String(walletAddress || '').trim())) {
-          throw new Error('Could not secure an embedded Polygon wallet for checkout.');
-        }
-
-        await window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser?.id, walletAddress);
         closeCrateModal();
-        if (goto) {
-          goto('checkout', null, null, {
-            checkoutSession: {
-              crateId: modalCrate.id,
-              crateName: modalCrate.name,
-              quantity: crateModalState.quantity,
-              totalUsd: modalCrateTotal,
-              totalLabel: formatUsd(modalCrateTotal),
-              walletAddress,
-            },
-          });
-        } else {
-          setCrateModalState((current) => ({
-            ...current,
-            message: 'Wallet created. Checkout staging page is ready.',
-          }));
-        }
+        goto('checkout', null, null, {
+          checkoutSession: {
+            crateId: modalCrate.id,
+            crateName: modalCrate.name,
+            quantity: crateModalState.quantity,
+            totalUsd: 0,
+            totalLabel: `${modalCrateCoinTotal} coins`,
+            paymentMethod: 'Coins',
+            rewards,
+          },
+        });
       })
       .catch((error) => {
         setCrateModalState((current) => ({
           ...current,
-          message: error.message || 'Could not prepare the checkout page right now.',
+          message: error.message || 'Could not open crates with coins right now.',
+        }));
+      })
+      .finally(() => {
+        setCheckoutBusy(false);
+      });
+  };
+
+  const handleStripeCheckout = () => {
+    setCheckoutBusy(true);
+    setCrateModalState((current) => ({
+      ...current,
+      message: `Preparing Stripe checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`,
+    }));
+
+    Promise.resolve()
+      .then(async () => {
+        const checkoutResponse = await fetch('/api/stripe/create-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            checkoutKind: 'crate',
+            crateKey: modalCrate.id,
+            quantity: crateModalState.quantity,
+            userId: currentUser.id,
+            displayName: currentUser.displayName,
+            buyerEmail: currentUser.email,
+          }),
+        });
+
+        const checkoutPayload = await checkoutResponse.json().catch(() => null);
+        if (!checkoutResponse.ok) {
+          throw new Error(checkoutPayload?.message || 'Could not start Stripe checkout right now.');
+        }
+
+        if (!checkoutPayload?.checkoutUrl) {
+          throw new Error('Stripe did not return a checkout link.');
+        }
+
+        window.location.href = checkoutPayload.checkoutUrl;
+      })
+      .catch((error) => {
+        setCrateModalState((current) => ({
+          ...current,
+          message: error.message || 'Could not prepare Stripe checkout right now.',
         }));
       })
       .finally(() => {
@@ -208,7 +281,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
         <section ref={crateSectionRef} style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
             <div className="pixel" style={{ fontSize: 14 }}>MYSTERY CRATES</div>
-            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// direct purchase crates starting at {formatUsd(selectedCrateUnitPrice)} each</span>
+            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// pay {formatUsd(selectedCrateUnitPrice)} or {crateCoinPrice} coins per crate</span>
           </div>
 
           <div className="grid cols-4 crate-grid">
@@ -222,7 +295,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <img className="crate-image" src="assets/crates/pixel-crate.webp" alt={crate.name} loading="lazy" decoding="async" />
                 </div>
                 <div className="pixel" style={{ fontSize: 11, marginBottom: 6 }}>{crate.name}</div>
-                <div className="mono" style={{ fontSize: 18, opacity: .72, marginBottom: 10 }}>FROM {formatUsd(crate.priceUsd || 0)}</div>
+                <div className="mono" style={{ fontSize: 18, opacity: .72, marginBottom: 10 }}>{formatUsd(crate.priceUsd || 0)} / {crateCoinPrice} COINS</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {getCrateRaritySummary(crate).map((entry) => (
                     <span key={`${crate.id}-${entry.label}`} className={`chip ${entry.className}`}>{entry.value} {entry.label}</span>
@@ -242,7 +315,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <button className="pxl-btn crate-open-btn crate-open-btn-hero" onClick={() => handleOpenCrate(selectedCrate)}>BUY CRATES</button>
                 </div>
                 <div style={{ position: 'absolute', top: 16, left: 16 }}>
-                  <span className="chip coral">FROM {formatUsd(selectedCrateUnitPrice)}</span>
+                  <span className="chip coral">{formatUsd(selectedCrateUnitPrice)} / {crateCoinPrice} COINS</span>
                 </div>
                 <div style={{ position: 'absolute', bottom: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between' }} className="pixel">
                   <span style={{ fontSize: 11 }}>{selectedCrate.id.toUpperCase()}</span>
@@ -407,7 +480,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
           <div className="crate-open-shell" onClick={(event) => event.stopPropagation()}>
             <div className={`pxl-box no-drop crate-open-panel crate-open-panel-${modalCrate.tone}`}>
               <div className="crate-open-meta">
-                <span className="chip coral">{crateModalState.quantity} × {formatUsd(modalCrateUnitPrice)}</span>
+                <span className="chip coral">{crateModalState.quantity} × {formatUsd(modalCrateUnitPrice)} / {crateCoinPrice} coins</span>
                 <button className="auth-modal-close crate-modal-close" onClick={closeCrateModal} aria-label="Close crate checkout">X</button>
               </div>
               <div className="crate-open-stage float">
@@ -420,15 +493,10 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                 <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
                 <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
                 <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-                    <div>
-                      <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 6 }}>CRATE QUANTITY</div>
-                      <div className="mono" style={{ fontSize: 20 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 6 }}>TOTAL</div>
-                      <div className="pixel" style={{ fontSize: 18 }}>{formatUsd(modalCrateTotal)}</div>
-                    </div>
+                  <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
+                    <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
+                    <div className="stat-row"><span className="stat-key">STRIPE TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
+                    <div className="stat-row"><span className="stat-key">COIN TOTAL</span><span className="stat-val">{modalCrateCoinTotal} coins</span></div>
                   </div>
                   <input
                     type="range"
@@ -442,25 +510,28 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   />
                 </div>
                 <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
-                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 8 }}>EMBEDDED WALLET</div>
+                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 8 }}>PAYMENT OPTIONS</div>
                   <div className="mono" style={{ fontSize: 16, lineHeight: 1.4, marginBottom: 10 }}>
-                    {accountSnapshot.walletAddress
-                      ? `${accountSnapshot.walletAddress.slice(0, 6)}...${accountSnapshot.walletAddress.slice(-4)}`
-                      : 'A Polygon wallet will be created automatically for your account during secure checkout setup.'}
+                    Coin balance: {Number(accountSnapshot.balance || 0).toLocaleString()}
                   </div>
                   <p className="mono" style={{ fontSize: 16, lineHeight: 1.4, opacity: 0.75, margin: 0 }}>
-                    Crate rewards mint directly to your wallet.
+                    Use coins for an instant open, or pay with Stripe if you want to buy crates directly without spending coins.
                   </p>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
                   <span className="chip">{formatUsd(modalCrateUnitPrice)} each</span>
-                  <span className="chip coral">TOTAL {formatUsd(modalCrateTotal)}</span>
+                  <span className="chip">{crateCoinPrice} coins each</span>
+                  <span className="chip coral">TOTAL {formatUsd(modalCrateTotal)} / {modalCrateCoinTotal} coins</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <button className="pxl-btn ghost" onClick={closeCrateModal}>CLOSE</button>
-                  <button className="pxl-btn" onClick={handleProceedToCheckout} disabled={checkoutBusy}>
-                    {checkoutBusy ? 'CONNECTING...' : `BUY ${crateModalState.quantity} FOR ${formatUsd(modalCrateTotal)}`}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                  <button className="pxl-btn" onClick={handleCoinCheckout} disabled={checkoutBusy}>
+                    {checkoutBusy ? 'CONNECTING...' : `OPEN FOR ${modalCrateCoinTotal} COINS`}
                   </button>
+                  <button className="pxl-btn ghost" onClick={handleStripeCheckout} disabled={checkoutBusy}>
+                    {checkoutBusy ? 'CONNECTING...' : `PAY ${formatUsd(modalCrateTotal)} WITH STRIPE`}
+                  </button>
+                  <button className="pxl-btn ghost" onClick={() => goto('topup')} disabled={checkoutBusy}>GET COINS</button>
+                  <button className="pxl-btn ghost" onClick={closeCrateModal}>CLOSE</button>
                 </div>
               </div>
             </div>
