@@ -1,5 +1,63 @@
 /* ============= Legal pages ============= */
 
+const CommissionPage = () => (
+  <div className="page">
+    <div className="legal commission-page pxl-box">
+      <h1>COMMISSION</h1>
+      <div className="meta">ARTIST SUBMISSIONS · WEARABLE CATEGORIES · REVENUE SHARE</div>
+
+      <hr className="pxl-hr" />
+
+      <p>
+        WardrobeForge commissions original wearable art from artists who want to help shape the collection.
+        If you create strong pixel work and want it featured in the platform, we would love to review it.
+      </p>
+
+      <div className="commission-grid">
+        <div className="contact-card">
+          <h2>OPEN SECTIONS</h2>
+          <ul>
+            <li>Boots</li>
+            <li>Wand</li>
+            <li>Outfit</li>
+            <li>Headpiece</li>
+          </ul>
+        </div>
+
+        <div className="contact-card">
+          <h2>ARTIST PAYOUT</h2>
+          <p>
+            Once your piece is approved, any rolls on that piece give you
+            <strong> 50% of the profit</strong>.
+          </p>
+        </div>
+      </div>
+
+      <h2>HOW IT WORKS</h2>
+      <p>
+        Submit an art piece for any available section. Our team reviews each submission for quality,
+        fit, and consistency with the WardrobeForge world. Approved pieces are added to the eligible roll pool,
+        and artists receive a 50% profit share on rolls tied to their approved work.
+      </p>
+
+      <h2>WHY ARTISTS JOIN</h2>
+      <p>
+        This is built to reward great art long after the piece is finished. Some of our artists make
+        <strong> over +$5000.00 a month</strong> for their wonderful work.
+      </p>
+
+      <h2>SUBMIT YOUR WORK</h2>
+      <p>
+        To submit a commission inquiry or portfolio, reach out at
+        {' '}
+        <a href="mailto:info@wardrobeforge.com">info@wardrobeforge.com</a>
+        {' '}
+        and include your name, portfolio, and which section you want to design for.
+      </p>
+    </div>
+  </div>
+);
+
 const PrivacyPage = () => (
   <div className="page">
     <div className="legal pxl-box">
@@ -245,5 +303,6 @@ const TermsPage = () => (
 );
 
 window.ContactPage = ContactPage;
+window.CommissionPage = CommissionPage;
 window.PrivacyPage = PrivacyPage;
 window.TermsPage = TermsPage;

@@ -822,6 +822,7 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   .grid.cols-2, .grid.cols-3, .grid.cols-4{ grid-template-columns: 1fr }
   .topup-grid{ grid-template-columns: 1fr; }
   .contact-grid{ grid-template-columns: 1fr; }
+  .commission-grid{ grid-template-columns: 1fr; }
 
   .why-wardrobe-card{
     padding: 24px 18px 28px !important;
@@ -1316,6 +1317,18 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
     radial-gradient(circle at bottom left, rgba(255,184,200,.28), transparent 26%),
     linear-gradient(180deg, #fff 0%, #fff7f2 100%);
 }
+.commission-page{
+  background:
+    radial-gradient(circle at top left, rgba(255,233,168,.34), transparent 26%),
+    radial-gradient(circle at right center, rgba(248,86,70,.18), transparent 24%),
+    linear-gradient(180deg, #fff 0%, #fff7f2 100%);
+}
+.commission-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
 .contact-grid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1333,7 +1346,8 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   font-size: 26px;
 }
 .contact-card a,
-.contact-page a{
+.contact-page a,
+.commission-page a{
   color: var(--coral-deep);
   text-decoration: underline;
   text-underline-offset: 4px;
