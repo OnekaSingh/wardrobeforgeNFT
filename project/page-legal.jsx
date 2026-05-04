@@ -32,7 +32,7 @@ const CommissionPage = () => (
           </p>
           <img
             className="commission-artist-image"
-            src="artist.png"
+            src="assets/artist.png"
             alt="Artist illustration"
             loading="lazy"
             decoding="async"
