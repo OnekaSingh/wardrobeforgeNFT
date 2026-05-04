@@ -17,10 +17,10 @@ const CommissionPage = () => (
         <div className="contact-card commission-sections-card">
           <h2>OPEN SECTIONS</h2>
           <ul className="commission-sections-list">
-            <li>Boots</li>
-            <li>Wand</li>
-            <li>Outfit</li>
-            <li>Headpiece</li>
+            <li className="section-pink">Boots</li>
+            <li className="section-white">Wand</li>
+            <li className="section-pink">Outfit</li>
+            <li className="section-white">Headpiece</li>
           </ul>
         </div>
 
@@ -30,6 +30,13 @@ const CommissionPage = () => (
             Once your piece is approved, any rolls on that piece give you
             <strong> 50% of the profit</strong>.
           </p>
+          <img
+            className="commission-artist-image"
+            src="artist.png"
+            alt="Artist illustration"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
       </div>
 
@@ -55,13 +62,12 @@ const CommissionPage = () => (
         {' '}
         on your application status.
       </p>
-      <p style={{ marginTop: 24 }}>
+      <p className="commission-submit-wrap">
         <a
-          className="pxl-btn"
+          className="pxl-btn commission-submit-btn"
           href="https://forms.gle/BVjZEnp7NyQYhEns6"
           target="_blank"
           rel="noreferrer"
-          style={{ display: 'inline-block' }}
         >
           Submit Commission
         </a>

@@ -1345,22 +1345,38 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   overflow: hidden;
 }
 .commission-sections-list{
-  list-style: disc;
-  padding-left: 42px;
+  list-style: none;
+  padding-left: 0;
   margin: 18px 0 0;
 }
 .commission-sections-list li{
   margin: 0;
   padding: 16px 18px;
-  background: repeating-linear-gradient(
-    to bottom,
-    #fff3f6 0 18px,
-    #ffffff 18px 36px
-  );
   border-top: 3px solid rgba(42,27,27,.12);
 }
 .commission-sections-list li:first-child{
   border-top: 0;
+}
+.commission-sections-list li.section-pink{
+  background: #fff3f6;
+}
+.commission-sections-list li.section-white{
+  background: #ffffff;
+}
+.commission-submit-wrap{
+  margin-top: 24px;
+  text-align: center;
+}
+.commission-submit-btn{
+  display: inline-block;
+  color: var(--white) !important;
+  text-decoration: none !important;
+}
+.commission-artist-image{
+  display: block;
+  width: min(100%, 280px);
+  margin: 18px auto 0;
+  image-rendering: pixelated;
 }
 .contact-card p{
   margin-bottom: 0;
