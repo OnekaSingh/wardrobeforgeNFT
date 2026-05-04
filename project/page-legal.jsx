@@ -14,9 +14,9 @@ const CommissionPage = () => (
       </p>
 
       <div className="commission-grid">
-        <div className="contact-card">
+        <div className="contact-card commission-sections-card">
           <h2>OPEN SECTIONS</h2>
-          <ul>
+          <ul className="commission-sections-list">
             <li>Boots</li>
             <li>Wand</li>
             <li>Outfit</li>
@@ -48,11 +48,23 @@ const CommissionPage = () => (
 
       <h2>SUBMIT YOUR WORK</h2>
       <p>
-        To submit a commission inquiry or portfolio, reach out at
+        Commissions are reviewed within 24 hours. If approved, you will recieve 50% the revenue your
+        piece generates. Please keep a look out for an email from
         {' '}
         <a href="mailto:info@wardrobeforge.com">info@wardrobeforge.com</a>
         {' '}
-        and include your name, portfolio, and which section you want to design for.
+        on your application status.
+      </p>
+      <p style={{ marginTop: 24 }}>
+        <a
+          className="pxl-btn"
+          href="https://forms.gle/BVjZEnp7NyQYhEns6"
+          target="_blank"
+          rel="noreferrer"
+          style={{ display: 'inline-block' }}
+        >
+          Submit Commission
+        </a>
       </p>
     </div>
   </div>

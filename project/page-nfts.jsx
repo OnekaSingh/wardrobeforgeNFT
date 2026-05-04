@@ -4,6 +4,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const baseCatalog = window.BROWSABLE_NFT_LIBRARY || NFT_LIBRARY;
   const crates = window.CRATE_LIBRARY || [];
   const crateCoinPrice = Number(window.CRATE_PRICE_COINS || 100);
+  const maxCrateQuantity = Math.max(1, Math.floor(500 / Math.max(0.01, Number(window.CRATE_PRICE_USD || 2.99))));
   const formatUsd = (amount) => `$${amount.toFixed(2)}`;
   const accountSnapshot = React.useMemo(
     () => window.WardrobeForgeAuth?.getAccountSnapshot?.(currentUser?.id) || { xp: 0, ownedArtIds: ['base-outfit', 'base-shoes'], itemStars: { 'base-outfit': 1, 'base-shoes': 1 } },
@@ -140,7 +141,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
 
   const handleModalQuantityChange = (nextQuantity) => {
     setCrateModalState((current) => {
-      const quantity = Number(nextQuantity);
+      const quantity = Math.max(1, Math.min(maxCrateQuantity, Number(nextQuantity)));
       const unitPrice = Number((modalCrate?.priceUsd || selectedCrate?.priceUsd || 0));
       return {
         ...current,
@@ -480,7 +481,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
           <div className="crate-open-shell" onClick={(event) => event.stopPropagation()}>
             <div className={`pxl-box no-drop crate-open-panel crate-open-panel-${modalCrate.tone}`}>
               <div className="crate-open-meta">
-                <span className="chip coral">{crateModalState.quantity} × {formatUsd(modalCrateUnitPrice)} / {crateCoinPrice} coins</span>
+                <span className="chip coral">{crateModalState.quantity} × {formatUsd(modalCrateUnitPrice)}</span>
                 <button className="auth-modal-close crate-modal-close" onClick={closeCrateModal} aria-label="Close crate checkout">X</button>
               </div>
               <div className="crate-open-stage float">
@@ -495,43 +496,31 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                 <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
                   <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
                     <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
-                    <div className="stat-row"><span className="stat-key">STRIPE TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
-                    <div className="stat-row"><span className="stat-key">COIN TOTAL</span><span className="stat-val">{modalCrateCoinTotal} coins</span></div>
+                    <div className="stat-row"><span className="stat-key">TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
                   </div>
                   <input
+                    className="topup-slider"
                     type="range"
                     min="1"
-                    max="10"
+                    max={String(maxCrateQuantity)}
                     step="1"
                     value={crateModalState.quantity}
                     onChange={(event) => handleModalQuantityChange(event.target.value)}
-                    style={{ width: '100%', accentColor: 'var(--coral)' }}
                     aria-label="Select crate quantity"
                   />
-                </div>
-                <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
-                  <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 8 }}>PAYMENT OPTIONS</div>
-                  <div className="mono" style={{ fontSize: 16, lineHeight: 1.4, marginBottom: 10 }}>
-                    Coin balance: {Number(accountSnapshot.balance || 0).toLocaleString()}
+                  <div className="topup-slider-scale">
+                    <span>1</span>
+                    <span>{Math.ceil(maxCrateQuantity / 2).toLocaleString()}</span>
+                    <span>{maxCrateQuantity.toLocaleString()}</span>
                   </div>
-                  <p className="mono" style={{ fontSize: 16, lineHeight: 1.4, opacity: 0.75, margin: 0 }}>
-                    Use coins for an instant open, or pay with Stripe if you want to buy crates directly without spending coins.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
-                  <span className="chip">{formatUsd(modalCrateUnitPrice)} each</span>
-                  <span className="chip">{crateCoinPrice} coins each</span>
-                  <span className="chip coral">TOTAL {formatUsd(modalCrateTotal)} / {modalCrateCoinTotal} coins</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                   <button className="pxl-btn" onClick={handleCoinCheckout} disabled={checkoutBusy}>
                     {checkoutBusy ? 'CONNECTING...' : `OPEN FOR ${modalCrateCoinTotal} COINS`}
                   </button>
                   <button className="pxl-btn ghost" onClick={handleStripeCheckout} disabled={checkoutBusy}>
-                    {checkoutBusy ? 'CONNECTING...' : `PAY ${formatUsd(modalCrateTotal)} WITH STRIPE`}
+                    {checkoutBusy ? 'CONNECTING...' : `NFT CHECKOUT FOR ${formatUsd(modalCrateTotal)}`}
                   </button>
-                  <button className="pxl-btn ghost" onClick={() => goto('topup')} disabled={checkoutBusy}>GET COINS</button>
-                  <button className="pxl-btn ghost" onClick={closeCrateModal}>CLOSE</button>
                 </div>
               </div>
             </div>
