@@ -27,10 +27,12 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     crateId: null,
     quantity: 1,
     totalUsd: 0,
+    mode: 'checkout',
     message: '',
   });
   const crateSectionRef = React.useRef(null);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [mintedWalletAddress, setMintedWalletAddress] = useState('');
 
   const selected = catalog.find(n => n.id === selectedId) || catalog[0];
   const selectedCrate = crates.find((crate) => crate.id === selectedCrateId) || crates[0];
@@ -39,6 +41,10 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const modalCrateUnitPrice = Number(modalCrate?.priceUsd || 0);
   const modalCrateTotal = Number((modalCrateUnitPrice * crateModalState.quantity).toFixed(2));
   const modalCrateCoinTotal = crateCoinPrice * crateModalState.quantity;
+  const walletAddress = mintedWalletAddress || accountSnapshot.walletAddress || currentUser?.walletAddress || '';
+  const formatWalletAddress = (value) => (
+    value && value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value
+  );
   const getCrateRaritySummary = (crate) => ([
     { label: 'COMMON', value: crate?.rarityCounts?.Common || 0, className: 'pink' },
     { label: 'RARE', value: crate?.rarityCounts?.Rare || 0, className: 'sky' },
@@ -115,11 +121,13 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   }, [catalog]);
 
   const closeCrateModal = () => {
+    setMintedWalletAddress('');
     setCrateModalState({
       open: false,
       crateId: null,
       quantity: 1,
       totalUsd: 0,
+      mode: 'checkout',
       message: '',
     });
   };
@@ -135,6 +143,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       crateId: crate.id,
       quantity: 1,
       totalUsd: Number((crate.priceUsd || 0).toFixed(2)),
+      mode: 'checkout',
       message: '',
     });
   };
@@ -229,41 +238,33 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
-      message: `Preparing Stripe checkout for ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`,
+      message: `Preparing ${current.quantity} ${current.quantity === 1 ? 'mint' : 'mints'}...`,
     }));
 
     Promise.resolve()
       .then(async () => {
-        const checkoutResponse = await fetch('/api/stripe/create-checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            checkoutKind: 'crate',
-            crateKey: modalCrate.id,
-            quantity: crateModalState.quantity,
-            userId: currentUser.id,
-            displayName: currentUser.displayName,
-            buyerEmail: currentUser.email,
-          }),
-        });
+        let nextWalletAddress = walletAddress;
 
-        const checkoutPayload = await checkoutResponse.json().catch(() => null);
-        if (!checkoutResponse.ok) {
-          throw new Error(checkoutPayload?.message || 'Could not start Stripe checkout right now.');
+        if (!nextWalletAddress) {
+          nextWalletAddress = await window.WardrobeForgeWallet?.ensureEmbeddedWallet?.({ user: currentUser });
+          if (!nextWalletAddress) {
+            throw new Error('Could not generate a wallet address for this mint.');
+          }
+          window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser.id, nextWalletAddress);
         }
 
-        if (!checkoutPayload?.checkoutUrl) {
-          throw new Error('Stripe did not return a checkout link.');
-        }
-
-        window.location.href = checkoutPayload.checkoutUrl;
+        setMintedWalletAddress(nextWalletAddress);
+        setCrateModalState((current) => ({
+          ...current,
+          mode: 'wallet',
+          message: `${current.quantity} ${current.quantity === 1 ? 'NFT has' : 'NFTs have'} been minted to ${formatWalletAddress(nextWalletAddress)}.`,
+        }));
       })
       .catch((error) => {
         setCrateModalState((current) => ({
           ...current,
-          message: error.message || 'Could not prepare Stripe checkout right now.',
+          mode: 'wallet',
+          message: error.message || 'Could not prepare the minted wallet address right now.',
         }));
       })
       .finally(() => {
@@ -487,16 +488,22 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
               <div className="crate-open-stage float">
                 <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
               </div>
-              <div className="pixel crate-open-title">CHECKOUT PREVIEW</div>
+              <div className="pixel crate-open-title">{crateModalState.mode === 'wallet' ? 'MINT PREVIEW' : 'CHECKOUT PREVIEW'}</div>
               {crateModalState.message ? <div className="mono crate-open-subtitle">{crateModalState.message}</div> : null}
               <div className="crate-reveal-card">
-                <div className="chip coral" style={{ marginBottom: 14 }}>ORDER SUMMARY</div>
+                <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'wallet' ? 'MINT DETAILS' : 'ORDER SUMMARY'}</div>
                 <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
                 <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
                 <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
                   <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
                     <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
                     <div className="stat-row"><span className="stat-key">TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
+                    {crateModalState.mode === 'wallet' ? (
+                      <>
+                        <div className="stat-row"><span className="stat-key">WALLET</span><span className="stat-val">{walletAddress || 'NOT SET'}</span></div>
+                        <div className="stat-row"><span className="stat-key">STATUS</span><span className="stat-val">{walletAddress ? 'MINTED TO SAVED WALLET' : 'WALLET REQUIRED'}</span></div>
+                      </>
+                    ) : null}
                   </div>
                   <input
                     className="topup-slider"
@@ -519,7 +526,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                     {checkoutBusy ? 'CONNECTING...' : `OPEN FOR ${modalCrateCoinTotal} COINS`}
                   </button>
                   <button className="pxl-btn ghost" onClick={handleStripeCheckout} disabled={checkoutBusy}>
-                    {checkoutBusy ? 'CONNECTING...' : `NFT CHECKOUT FOR ${formatUsd(modalCrateTotal)}`}
+                    {checkoutBusy ? 'MINTING...' : `MINT NFT FOR ${formatUsd(modalCrateTotal)}`}
                   </button>
                 </div>
               </div>

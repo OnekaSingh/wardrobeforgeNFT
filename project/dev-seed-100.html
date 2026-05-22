@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WardrobeForge Local Seed</title>
+</head>
+<body>
+<p>Seeding local WardrobeForge account...</p>
+<script>
+  const user = {
+    id: 'local-seed-100',
+    username: 'local100',
+    displayName: 'Local 100',
+    email: 'local100@example.com',
+    createdAt: new Date().toISOString(),
+  };
+
+  const account = {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    email: user.email,
+    createdAt: user.createdAt,
+    walletAddress: '',
+    ownedArtIds: ['base-outfit', 'base-shoes'],
+    itemStars: {
+      'base-outfit': 1,
+      'base-shoes': 1,
+    },
+    authenticityCodes: {
+      'base-outfit': 'wf_live_LOCAL100_BASE_OUTFIT_DEMO_CODE',
+      'base-shoes': 'wf_live_LOCAL100_BASE_SHOES_DEMO_CODE',
+    },
+    vtoBalance: 100,
+    xp: 0,
+  };
+
+  window.localStorage.setItem(
+    'wardrobeforge-auth-accounts-v1',
+    JSON.stringify([account]),
+  );
+  window.localStorage.setItem(
+    'wardrobeforge-auth-session-v2',
+    JSON.stringify({
+      token: 'wf_local_session_seed100',
+      user,
+      loggedInAt: new Date().toISOString(),
+    }),
+  );
+  window.localStorage.setItem('wardrobeforge-vto-grant-100-v2:local-seed-100', '1');
+
+  window.location.replace('./WardrobeForge.html#/topup');
+</script>
+</body>
+</html>
