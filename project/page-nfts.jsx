@@ -494,7 +494,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                 <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'wallet' ? 'MINT DETAILS' : 'ORDER SUMMARY'}</div>
                 <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
                 <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
-                <div className="pxl-box no-drop" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
+                <div className="pxl-box no-drop mint-detail-box" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
                   <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
                     <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
                     <div className="stat-row"><span className="stat-key">TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>

@@ -1434,6 +1434,38 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
 }
 .stat-val{ font-size: 20px }
 
+.mint-detail-box .stat-row{
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.mint-detail-box .stat-key{
+  flex: 0 0 132px;
+  padding-top: 2px;
+}
+
+.mint-detail-box .stat-val{
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 720px){
+  .mint-detail-box .stat-row{
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mint-detail-box .stat-key,
+  .mint-detail-box .stat-val{
+    flex: none;
+    width: 100%;
+    text-align: left;
+  }
+}
+
 /* gridfloor */
 .gridfloor{
   position:absolute; left:0; right:0; bottom:0; height: 60%;
