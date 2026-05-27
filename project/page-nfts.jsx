@@ -28,6 +28,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     quantity: 1,
     totalUsd: 0,
     mode: 'checkout',
+    rewards: [],
     message: '',
   });
   const crateSectionRef = React.useRef(null);
@@ -42,9 +43,20 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const modalCrateTotal = Number((modalCrateUnitPrice * crateModalState.quantity).toFixed(2));
   const modalCrateCoinTotal = crateCoinPrice * crateModalState.quantity;
   const walletAddress = mintedWalletAddress || accountSnapshot.walletAddress || currentUser?.walletAddress || '';
+  const revealedReward = crateModalState.rewards?.[0] || null;
   const formatWalletAddress = (value) => (
     value && value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value
   );
+  const confettiPieces = React.useMemo(() => (
+    Array.from({ length: 16 }, (_, index) => ({
+      id: index,
+      left: `${6 + ((index * 91) % 88)}%`,
+      size: 8 + (index % 4) * 4,
+      delay: `${(index % 6) * 0.14}s`,
+      duration: `${2.3 + (index % 5) * 0.28}s`,
+      background: ['var(--coral)', 'var(--pink-neon)', 'var(--mint)', '#fff7d8'][index % 4],
+    }))
+  ), []);
   const getCrateRaritySummary = (crate) => ([
     { label: 'COMMON', value: crate?.rarityCounts?.Common || 0, className: 'pink' },
     { label: 'RARE', value: crate?.rarityCounts?.Rare || 0, className: 'sky' },
@@ -128,6 +140,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       quantity: 1,
       totalUsd: 0,
       mode: 'checkout',
+      rewards: [],
       message: '',
     });
   };
@@ -144,6 +157,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       quantity: 1,
       totalUsd: Number((crate.priceUsd || 0).toFixed(2)),
       mode: 'checkout',
+      rewards: [],
       message: '',
     });
   };
@@ -238,7 +252,9 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
-      message: `Preparing ${current.quantity} ${current.quantity === 1 ? 'mint' : 'mints'}...`,
+      mode: 'opening',
+      rewards: [],
+      message: `Opening ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`,
     }));
 
     Promise.resolve()
@@ -253,18 +269,27 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
           window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser.id, nextWalletAddress);
         }
 
+        const rewards = await grantRewards({
+          quantity: crateModalState.quantity,
+          coinCostPerCrate: 0,
+        });
+
+        await new Promise((resolve) => window.setTimeout(resolve, 950));
+
         setMintedWalletAddress(nextWalletAddress);
         setCrateModalState((current) => ({
           ...current,
-          mode: 'wallet',
-          message: `${current.quantity} ${current.quantity === 1 ? 'NFT has' : 'NFTs have'} been minted to ${formatWalletAddress(nextWalletAddress)}.`,
+          mode: 'revealed',
+          rewards,
+          message: `${current.quantity} ${current.quantity === 1 ? 'crate has' : 'crates have'} been minted to ${formatWalletAddress(nextWalletAddress)}.`,
         }));
       })
       .catch((error) => {
         setCrateModalState((current) => ({
           ...current,
-          mode: 'wallet',
-          message: error.message || 'Could not prepare the minted wallet address right now.',
+          mode: 'checkout',
+          rewards: [],
+          message: error.message || 'Could not open this crate right now.',
         }));
       })
       .finally(() => {
@@ -480,56 +505,99 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       {crateModalState.open && modalCrate && (
         <div className="crate-open-backdrop" onClick={closeCrateModal}>
           <div className="crate-open-shell" onClick={(event) => event.stopPropagation()}>
-            <div className={`pxl-box no-drop crate-open-panel crate-open-panel-${modalCrate.tone}`}>
+            <div className={`pxl-box no-drop crate-open-panel crate-open-panel-${modalCrate.tone} ${crateModalState.mode === 'revealed' ? 'crate-open-panel-revealed topup-reward-card' : ''}`}>
+              {crateModalState.mode === 'revealed' ? (
+                <div className="topup-reward-confetti" aria-hidden="true">
+                  {confettiPieces.map((piece) => (
+                    <span
+                      key={`crate-confetti-${piece.id}`}
+                      className="topup-reward-confetti-piece"
+                      style={{
+                        left: piece.left,
+                        width: piece.size,
+                        height: piece.size,
+                        background: piece.background,
+                        animationDelay: piece.delay,
+                        animationDuration: piece.duration,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : null}
               <div className="crate-open-meta">
                 <span className="chip coral">{crateModalState.quantity} × {formatUsd(modalCrateUnitPrice)}</span>
                 <button className="auth-modal-close crate-modal-close" onClick={closeCrateModal} aria-label="Close crate checkout">X</button>
               </div>
-              <div className="crate-open-stage float">
-                <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
-              </div>
-              <div className="pixel crate-open-title">{crateModalState.mode === 'wallet' ? 'MINT PREVIEW' : 'CHECKOUT PREVIEW'}</div>
-              {crateModalState.message ? <div className="mono crate-open-subtitle">{crateModalState.message}</div> : null}
-              <div className="crate-reveal-card">
-                <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'wallet' ? 'MINT DETAILS' : 'ORDER SUMMARY'}</div>
-                <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
-                <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
-                <div className="pxl-box no-drop mint-detail-box" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
-                  <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
-                    <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
-                    <div className="stat-row"><span className="stat-key">TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
-                    {crateModalState.mode === 'wallet' ? (
-                      <>
+              {crateModalState.mode === 'revealed' && revealedReward ? (
+                <>
+                  <div className="crate-open-stage">
+                    <div className="crate-reveal-art">
+                      <NFTArt nft={revealedReward} scale={7} />
+                    </div>
+                  </div>
+                  <div className="pixel crate-open-title">CRATE OPENED</div>
+                  {crateModalState.message ? <div className="mono crate-open-subtitle">{crateModalState.message}</div> : null}
+                  <div className="crate-reveal-card">
+                    <div className={`chip ${RARITY_COLOR[revealedReward.rarity] || 'coral'}`} style={{ marginBottom: 14 }}>{revealedReward.rarity.toUpperCase()}</div>
+                    <div className="pixel" style={{ fontSize: 20, marginBottom: 8 }}>{revealedReward.name}</div>
+                    <div className="mono" style={{ fontSize: 18, marginBottom: 18 }}>{revealedReward.slot.toUpperCase()} · {crateModalState.quantity > 1 ? `${crateModalState.quantity} CRATES OPENED` : 'MINTED RELIC'}</div>
+                    <div className="pxl-box no-drop mint-detail-box" style={{ background: 'rgba(255,255,255,.48)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
+                      <div style={{ display: 'grid', gap: 12 }}>
                         <div className="stat-row"><span className="stat-key">WALLET</span><span className="stat-val">{walletAddress || 'NOT SET'}</span></div>
-                        <div className="stat-row"><span className="stat-key">STATUS</span><span className="stat-val">{walletAddress ? 'MINTED TO SAVED WALLET' : 'WALLET REQUIRED'}</span></div>
-                      </>
-                    ) : null}
+                        <div className="stat-row"><span className="stat-key">AUTH CODE</span><span className="stat-val">{revealedReward.authenticityCode || 'PENDING'}</span></div>
+                        <div className="stat-row"><span className="stat-key">STATUS</span><span className="stat-val">MINT COMPLETE</span></div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                      <button className="pxl-btn" onClick={() => goto('avatar')}>VIEW MY AVATAR</button>
+                      <button className="pxl-btn ghost" onClick={closeCrateModal}>OPEN ANOTHER</button>
+                    </div>
                   </div>
-                  <input
-                    className="topup-slider"
-                    type="range"
-                    min="1"
-                    max={String(maxCrateQuantity)}
-                    step="1"
-                    value={crateModalState.quantity}
-                    onChange={(event) => handleModalQuantityChange(event.target.value)}
-                    aria-label="Select crate quantity"
-                  />
-                  <div className="topup-slider-scale">
-                    <span>1</span>
-                    <span>{Math.ceil(maxCrateQuantity / 2).toLocaleString()}</span>
-                    <span>{maxCrateQuantity.toLocaleString()}</span>
+                </>
+              ) : (
+                <>
+                  <div className={`crate-open-stage float ${crateModalState.mode === 'opening' ? 'shake' : ''}`}>
+                    <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
                   </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-                  <button className="pxl-btn" onClick={handleCoinCheckout} disabled={checkoutBusy}>
-                    {checkoutBusy ? 'CONNECTING...' : `OPEN FOR ${modalCrateCoinTotal} COINS`}
-                  </button>
-                  <button className="pxl-btn ghost" onClick={handleStripeCheckout} disabled={checkoutBusy}>
-                    {checkoutBusy ? 'MINTING...' : `MINT NFT FOR ${formatUsd(modalCrateTotal)}`}
-                  </button>
-                </div>
-              </div>
+                  <div className="pixel crate-open-title">{crateModalState.mode === 'opening' ? 'OPENING CRATE' : 'CHECKOUT PREVIEW'}</div>
+                  {crateModalState.message ? <div className="mono crate-open-subtitle">{crateModalState.message}</div> : null}
+                  <div className="crate-reveal-card">
+                    <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'opening' ? 'MINTING NOW' : 'ORDER SUMMARY'}</div>
+                    <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
+                    <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
+                    <div className="pxl-box no-drop mint-detail-box" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
+                      <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
+                        <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
+                        <div className="stat-row"><span className="stat-key">TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
+                      </div>
+                      <input
+                        className="topup-slider"
+                        type="range"
+                        min="1"
+                        max={String(maxCrateQuantity)}
+                        step="1"
+                        value={crateModalState.quantity}
+                        onChange={(event) => handleModalQuantityChange(event.target.value)}
+                        aria-label="Select crate quantity"
+                        disabled={checkoutBusy}
+                      />
+                      <div className="topup-slider-scale">
+                        <span>1</span>
+                        <span>{Math.ceil(maxCrateQuantity / 2).toLocaleString()}</span>
+                        <span>{maxCrateQuantity.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                      <button className="pxl-btn" onClick={handleCoinCheckout} disabled={checkoutBusy}>
+                        {checkoutBusy ? 'CONNECTING...' : `OPEN FOR ${modalCrateCoinTotal} COINS`}
+                      </button>
+                      <button className="pxl-btn ghost" onClick={handleStripeCheckout} disabled={checkoutBusy}>
+                        {checkoutBusy ? 'MINTING...' : `MINT NFT FOR ${formatUsd(modalCrateTotal)}`}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

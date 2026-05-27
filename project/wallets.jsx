@@ -1,8 +1,10 @@
 const MAGIC_PUBLISHABLE_KEY_STORAGE_KEY = 'wardrobeforge-magic-publishable-key';
 const DEFAULT_POLYGON_RPC_URL = 'https://polygon-rpc.com/';
+const LOCAL_DEMO_WALLET_STORAGE_KEY = 'wardrobeforge-local-demo-wallets-v1';
 
 const trimWalletValue = (value) => String(value || '').trim();
 const normalizeWalletEmail = (value) => trimWalletValue(value).toLowerCase();
+const isLocalWalletHost = () => ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
 const getWalletConfig = () => {
   const globalConfig = window.WardrobeForgeConfig || {};
@@ -19,6 +21,48 @@ const getMagicConstructor = () => {
   if (window.Magic?.Magic) return window.Magic.Magic;
   if (typeof window.Magic === 'function') return window.Magic;
   return null;
+};
+
+const readLocalDemoWallets = () => {
+  try {
+    const raw = window.localStorage.getItem(LOCAL_DEMO_WALLET_STORAGE_KEY);
+    const parsed = JSON.parse(raw || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+const writeLocalDemoWallets = (wallets) => {
+  window.localStorage.setItem(LOCAL_DEMO_WALLET_STORAGE_KEY, JSON.stringify(wallets || {}));
+};
+
+const createLocalDemoWalletAddress = (seed) => {
+  const normalizedSeed = normalizeWalletEmail(seed) || `guest-${Date.now()}`;
+  let hex = '';
+
+  for (let index = 0; hex.length < 40; index += 1) {
+    const code = normalizedSeed.charCodeAt(index % normalizedSeed.length) + (index * 17);
+    hex += (code % 16).toString(16);
+  }
+
+  return `0x${hex.slice(0, 40)}`;
+};
+
+const ensureLocalDemoWallet = (email) => {
+  const cleanEmail = normalizeWalletEmail(email);
+  if (!cleanEmail) {
+    throw new Error('Sign in with a valid email before creating a demo wallet.');
+  }
+
+  const wallets = readLocalDemoWallets();
+  const existingWallet = trimWalletValue(wallets[cleanEmail]);
+  if (existingWallet) return existingWallet;
+
+  const nextWallet = createLocalDemoWalletAddress(cleanEmail);
+  wallets[cleanEmail] = nextWallet;
+  writeLocalDemoWallets(wallets);
+  return nextWallet;
 };
 
 const setMagicPublishableKey = (nextKey) => {
@@ -84,6 +128,28 @@ const ensureEmbeddedWallet = async ({ user }) => {
   const cleanEmail = normalizeWalletEmail(user?.email);
   if (!cleanEmail) {
     throw new Error('Sign in with a valid email before creating an embedded wallet.');
+  }
+
+  if (isLocalWalletHost()) {
+    try {
+      const magic = getMagicInstance();
+      const existingWallet = await getMagicWalletInfo();
+      if (existingWallet?.address && existingWallet.email === cleanEmail) {
+        return existingWallet.address;
+      }
+
+      if (existingWallet?.email && existingWallet.email !== cleanEmail) {
+        await magic.user.logout();
+      }
+
+      await magic.auth.loginWithMagicLink({ email: cleanEmail });
+
+      const metadata = await magic.user.getInfo();
+      const publicAddress = extractEthereumAddress(metadata);
+      if (publicAddress) return publicAddress;
+    } catch (error) {
+      return ensureLocalDemoWallet(cleanEmail);
+    }
   }
 
   const magic = getMagicInstance();

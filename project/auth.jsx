@@ -376,7 +376,7 @@ const isLocalDevelopmentHost = () => {
 };
 const shouldUseLocalAuthFallback = (error) => {
   const status = Number(error?.status);
-  return status === 0 || status === 404;
+  return status === 0 || status === 404 || status === 405 || status === 501;
 };
 
 const isLocalSessionToken = (token) => trimValue(token).startsWith(LOCAL_SESSION_TOKEN_PREFIX);
@@ -858,7 +858,12 @@ const logIn = async ({ email, password }) => {
     await syncAccountFromBackend(user?.id, result?.access_token).catch(() => {});
     return user;
   } catch (error) {
-    if (!shouldUseLocalAuthFallback(error)) throw error;
+    const shouldPreferSeededLocalLogin =
+      isLocalDevelopmentHost()
+      && Number(error?.status) === 401
+      && Boolean(findLocalCredential(identifier));
+
+    if (!shouldUseLocalAuthFallback(error) && !shouldPreferSeededLocalLogin) throw error;
     return logInLocally({ email: identifier, password: cleanPassword });
   }
 };

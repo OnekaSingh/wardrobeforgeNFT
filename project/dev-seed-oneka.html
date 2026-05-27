@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WardrobeForge Demo Seed</title>
+</head>
+<body>
+<p>Seeding local WardrobeForge demo account...</p>
+<script>
+  const AUTH_ACCOUNTS_STORAGE_KEY = 'wardrobeforge-auth-accounts-v1';
+  const AUTH_SESSION_STORAGE_KEY = 'wardrobeforge-auth-session-v2';
+  const AUTH_VTO_GRANT_KEY = 'wardrobeforge-vto-grant-100-v2';
+  const AUTH_LOCAL_CREDENTIALS_STORAGE_KEY = 'wardrobeforge-auth-local-credentials-v1';
+
+  const demoUser = {
+    id: 'local-oneka-demo',
+    username: 'oneka',
+    displayName: 'Oneka',
+    email: 'onekasingh@gmail.com',
+    createdAt: new Date().toISOString(),
+  };
+
+  const demoAccount = {
+    id: demoUser.id,
+    username: demoUser.username,
+    displayName: demoUser.displayName,
+    email: demoUser.email,
+    createdAt: demoUser.createdAt,
+    walletAddress: '',
+    ownedArtIds: ['base-outfit', 'base-shoes'],
+    itemStars: {
+      'base-outfit': 1,
+      'base-shoes': 1,
+    },
+    authenticityCodes: {
+      'base-outfit': 'wf_live_ONEKA_DEMO_BASE_OUTFIT',
+      'base-shoes': 'wf_live_ONEKA_DEMO_BASE_SHOES',
+    },
+    vtoBalance: 500,
+    xp: 0,
+  };
+
+  const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
+  const accounts = JSON.parse(window.localStorage.getItem(AUTH_ACCOUNTS_STORAGE_KEY) || '[]');
+  const nextAccounts = accounts.filter((entry) => normalizeEmail(entry?.email) !== normalizeEmail(demoUser.email));
+  nextAccounts.unshift(demoAccount);
+  window.localStorage.setItem(AUTH_ACCOUNTS_STORAGE_KEY, JSON.stringify(nextAccounts));
+
+  const credentials = JSON.parse(window.localStorage.getItem(AUTH_LOCAL_CREDENTIALS_STORAGE_KEY) || '[]');
+  const nextCredentials = credentials.filter((entry) => normalizeEmail(entry?.email) !== normalizeEmail(demoUser.email));
+  nextCredentials.unshift({
+    userId: demoUser.id,
+    username: demoUser.username,
+    email: demoUser.email,
+    password: 'Apple0011!',
+    agreeToTerms: true,
+    subscribeToNews: false,
+    createdAt: demoUser.createdAt,
+  });
+  window.localStorage.setItem(AUTH_LOCAL_CREDENTIALS_STORAGE_KEY, JSON.stringify(nextCredentials));
+
+  window.localStorage.setItem(
+    AUTH_SESSION_STORAGE_KEY,
+    JSON.stringify({
+      token: 'wf_local_session_oneka_demo',
+      user: demoUser,
+      loggedInAt: new Date().toISOString(),
+    }),
+  );
+  window.localStorage.setItem(`${AUTH_VTO_GRANT_KEY}:${demoUser.id}`, '1');
+
+  window.location.replace('./WardrobeForge.html#/nfts');
+</script>
+</body>
+</html>
