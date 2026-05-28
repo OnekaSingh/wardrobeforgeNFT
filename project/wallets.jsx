@@ -1,5 +1,5 @@
 const MAGIC_PUBLISHABLE_KEY_STORAGE_KEY = 'wardrobeforge-magic-publishable-key';
-const DEFAULT_POLYGON_RPC_URL = 'https://polygon-rpc.com/';
+const DEFAULT_POLYGON_RPC_URL = 'https://polygon-mainnet.g.alchemy.com/v2/59C7z05ZOwzmjChJVxUiz';
 const LOCAL_DEMO_WALLET_STORAGE_KEY = 'wardrobeforge-local-demo-wallets-v1';
 
 const trimWalletValue = (value) => String(value || '').trim();
