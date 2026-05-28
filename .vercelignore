@@ -3,5 +3,7 @@
 !project/**
 !api
 !api/**
+!package.json
+!package-lock.json
 !vercel.json
 !.vercelignore
