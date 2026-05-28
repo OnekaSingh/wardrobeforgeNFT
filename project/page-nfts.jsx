@@ -192,27 +192,13 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     return syncedRewards;
   };
 
-  const waitForTransactionReceipt = async ({ provider, txHash, attempts = 90, delayMs = 2000 }) => {
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const receipt = await provider.request({
-        method: 'eth_getTransactionReceipt',
-        params: [txHash],
-      });
-
-      if (receipt) return receipt;
-      await new Promise((resolve) => window.setTimeout(resolve, delayMs));
-    }
-
-    throw new Error('The mint transaction is taking longer than expected to confirm on Polygon.');
-  };
-
   const handleOnchainCheckout = () => {
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
       mode: 'opening',
       rewards: [],
-      message: `Preparing ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'} for on-chain mint...`,
+      message: `Preparing ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'} for sponsored Polygon mint...`,
     }));
 
     Promise.resolve()
@@ -227,7 +213,12 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
           window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser.id, nextWalletAddress);
         }
 
-        const checkoutResponse = await fetch('/api/contract/prepare-crate-purchase', {
+        setCrateModalState((current) => ({
+          ...current,
+          message: `Submitting a sponsored Polygon mint to ${formatWalletAddress(nextWalletAddress)}...`,
+        }));
+
+        const checkoutResponse = await fetch('/api/contract/execute-crate-purchase', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -240,47 +231,11 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
         });
         const checkoutPayload = await checkoutResponse.json().catch(() => null);
         if (!checkoutResponse.ok) {
-          throw new Error(checkoutPayload?.message || 'Could not prepare the contract purchase right now.');
+          throw new Error(checkoutPayload?.message || 'Could not complete the sponsored mint right now.');
         }
 
-        const provider = await window.WardrobeForgeWallet?.getEmbeddedWalletProvider?.({ user: currentUser });
-        const txHash = await provider.request({
-          method: 'eth_sendTransaction',
-          params: [
-            {
-              from: nextWalletAddress,
-              to: checkoutPayload.contractAddress,
-              data: checkoutPayload.data,
-              value: checkoutPayload.valueHex,
-            },
-          ],
-        });
-
-        setCrateModalState((current) => ({
-          ...current,
-          message: `Waiting for Polygon confirmation on ${formatWalletAddress(nextWalletAddress)}...`,
-        }));
-
-        await waitForTransactionReceipt({ provider, txHash });
-
-        const resolveResponse = await fetch('/api/contract/resolve-crate-purchase', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            txHash,
-            crateKey: modalCrate.id,
-            quantity: crateModalState.quantity,
-            recipientWallet: nextWalletAddress,
-          }),
-        });
-        const resolvePayload = await resolveResponse.json().catch(() => null);
-        if (!resolveResponse.ok) {
-          throw new Error(resolvePayload?.message || 'The transaction confirmed, but the minted rewards could not be resolved.');
-        }
-
-        const resolvedRewards = (resolvePayload.mintedRewards || []).map((entry) => {
+        const txHash = checkoutPayload.txHash;
+        const resolvedRewards = (checkoutPayload.mintedRewards || []).map((entry) => {
           const reward = window.WardrobeForgeTokenCatalog?.getItemByTokenId?.(entry.tokenId);
           if (!reward?.art) {
             throw new Error(`Minted token ${entry.tokenId} is not mapped in the NFT catalog.`);
@@ -311,7 +266,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
             quantity: crateModalState.quantity,
             totalUsd: modalCrateTotal,
             totalLabel: formatUsd(modalCrateTotal),
-            paymentMethod: 'Polygon Wallet',
+            paymentMethod: 'Sponsored Polygon Mint',
             rewards: syncedRewards,
             walletAddress: nextWalletAddress,
             txHash,
