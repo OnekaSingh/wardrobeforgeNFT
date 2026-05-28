@@ -135,16 +135,16 @@ ERC-1155 is the best fit here because:
 
 If later you want every item instance to be fully unique, we can revisit ERC-721 or hybridize the design.
 
-## Wert integration shape
+## App checkout shape
 
-The backend would:
+The app flow is:
 
 1. map the selected crate UI to a numeric `crateId`
 2. map the slider to `quantity`
-3. calculate the required crypto amount
+3. calculate the required POL amount
 4. ABI-encode `buyCrates(recipient, crateId, quantity)`
-5. sign the Wert payment payload
-6. launch the widget with `sc_address` and `sc_input_data`
+5. submit the transaction from the buyer wallet on Polygon
+6. decode the `CrateOpened` events after confirmation
 
 ## Production TODOs
 

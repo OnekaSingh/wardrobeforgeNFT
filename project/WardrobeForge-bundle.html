@@ -1522,8 +1522,14 @@ window.TermsPage = TermsPage;
 <script type="text/babel">
 const { useState: useStateApp, useEffect: useEffectApp } = React;
 
+const getRouteFromHash = () => {
+  const normalizedHash = window.location.hash.replace('#', '');
+  if (!normalizedHash || normalizedHash === 'topup') return 'main';
+  return normalizedHash;
+};
+
 const App = () => {
-  const [page, setPage] = useStateApp(() => window.location.hash.replace('#','') || 'main');
+  const [page, setPage] = useStateApp(() => getRouteFromHash());
   const [nftFocus, setNftFocus] = useStateApp(null);
   const [tweaks, setTweak] = useTweaks({ accent:'#F85646', scanlines:true, skin:'lavender', fontScale:1 });
 
@@ -1540,7 +1546,7 @@ const App = () => {
   };
 
   useEffectApp(() => {
-    const onHash = () => setPage(window.location.hash.replace('#','') || 'main');
+    const onHash = () => setPage(getRouteFromHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -1581,7 +1587,6 @@ const App = () => {
           <a onClick={() => goto('main')} style={{ cursor:'pointer' }}>HOME</a> ·
           <a onClick={() => goto('avatar')} style={{ cursor:'pointer' }}>AVATAR</a> ·
           <a onClick={() => goto('nfts')} style={{ cursor:'pointer' }}>NFTS</a> ·
-          <a onClick={() => goto('topup')} style={{ cursor:'pointer' }}>TOP UP</a> ·
           <a onClick={() => goto('account')} style={{ cursor:'pointer' }}>SIGN IN</a> ·
           <a onClick={() => goto('privacy')} style={{ cursor:'pointer' }}>PRIVACY</a> ·
           <a onClick={() => goto('terms')} style={{ cursor:'pointer' }}>TERMS</a>

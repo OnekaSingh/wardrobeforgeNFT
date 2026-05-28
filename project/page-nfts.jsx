@@ -3,7 +3,6 @@
 const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const baseCatalog = window.BROWSABLE_NFT_LIBRARY || NFT_LIBRARY;
   const crates = window.CRATE_LIBRARY || [];
-  const crateCoinPrice = Number(window.CRATE_PRICE_COINS || 100);
   const maxCrateQuantity = Math.max(1, Math.floor(500 / Math.max(0.01, Number(window.CRATE_PRICE_USD || 2.99))));
   const formatUsd = (amount) => `$${amount.toFixed(2)}`;
   const accountSnapshot = React.useMemo(
@@ -41,7 +40,6 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const selectedCrateUnitPrice = Number(selectedCrate?.priceUsd || 0);
   const modalCrateUnitPrice = Number(modalCrate?.priceUsd || 0);
   const modalCrateTotal = Number((modalCrateUnitPrice * crateModalState.quantity).toFixed(2));
-  const modalCrateCoinTotal = crateCoinPrice * crateModalState.quantity;
   const walletAddress = mintedWalletAddress || accountSnapshot.walletAddress || currentUser?.walletAddress || '';
   const revealedReward = crateModalState.rewards?.[0] || null;
   const formatWalletAddress = (value) => (
@@ -174,87 +172,47 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     });
   };
 
-  const rollCrateReward = (crate) => {
-    const pool = Array.isArray(crate?.contents) ? crate.contents : [];
-    if (!pool.length) return null;
-    return pool[Math.floor(Math.random() * pool.length)] || null;
-  };
+  const syncMintedRewardsToAccount = async (rewards) => {
+    const syncedRewards = [];
 
-  const grantRewards = async ({ quantity, coinCostPerCrate }) => {
-    const rewards = [];
-
-    for (let index = 0; index < quantity; index += 1) {
-      const reward = rollCrateReward(modalCrate);
-      if (!reward?.art) {
-        throw new Error('This crate is missing reward items.');
-      }
-
+    for (const reward of rewards) {
       const claimResult = await window.WardrobeForgeAuth?.spendVtoAndGrantItem?.({
         userId: currentUser.id,
-        cost: coinCostPerCrate,
+        cost: 0,
         artId: reward.art,
         xpAmount: Number(reward.pointsBonus) || 0,
       });
 
-      rewards.push({
-        art: reward.art,
-        id: reward.id,
-        name: reward.name,
-        rarity: reward.rarity,
-        slot: reward.slot,
-        inventorySrc: reward.inventorySrc || reward.avatarSrc || '',
+      syncedRewards.push({
+        ...reward,
         authenticityCode: claimResult?.grantedAuthenticityCode || '',
       });
     }
 
-    return rewards;
+    return syncedRewards;
   };
 
-  const handleCoinCheckout = () => {
-    setCheckoutBusy(true);
-    setCrateModalState((current) => ({
-      ...current,
-      message: `Opening ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'} with coins...`,
-    }));
-
-    Promise.resolve()
-      .then(async () => {
-        const rewards = await grantRewards({
-          quantity: crateModalState.quantity,
-          coinCostPerCrate: crateCoinPrice,
-        });
-
-        closeCrateModal();
-        goto('checkout', null, null, {
-          checkoutSession: {
-            crateId: modalCrate.id,
-            crateName: modalCrate.name,
-            quantity: crateModalState.quantity,
-            totalUsd: 0,
-            totalLabel: `${modalCrateCoinTotal} coins`,
-            paymentMethod: 'Coins',
-            rewards,
-          },
-        });
-      })
-      .catch((error) => {
-        setCrateModalState((current) => ({
-          ...current,
-          message: error.message || 'Could not open crates with coins right now.',
-        }));
-      })
-      .finally(() => {
-        setCheckoutBusy(false);
+  const waitForTransactionReceipt = async ({ provider, txHash, attempts = 90, delayMs = 2000 }) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const receipt = await provider.request({
+        method: 'eth_getTransactionReceipt',
+        params: [txHash],
       });
+
+      if (receipt) return receipt;
+      await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    }
+
+    throw new Error('The mint transaction is taking longer than expected to confirm on Polygon.');
   };
 
-  const handleStripeCheckout = () => {
+  const handleOnchainCheckout = () => {
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
       mode: 'opening',
       rewards: [],
-      message: `Opening ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'}...`,
+      message: `Preparing ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'} for on-chain mint...`,
     }));
 
     Promise.resolve()
@@ -269,27 +227,103 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
           window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser.id, nextWalletAddress);
         }
 
-        const rewards = await grantRewards({
-          quantity: crateModalState.quantity,
-          coinCostPerCrate: 0,
+        const checkoutResponse = await fetch('/api/contract/prepare-crate-purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            crateKey: modalCrate.id,
+            quantity: crateModalState.quantity,
+            recipientWallet: nextWalletAddress,
+          }),
+        });
+        const checkoutPayload = await checkoutResponse.json().catch(() => null);
+        if (!checkoutResponse.ok) {
+          throw new Error(checkoutPayload?.message || 'Could not prepare the contract purchase right now.');
+        }
+
+        const provider = await window.WardrobeForgeWallet?.getEmbeddedWalletProvider?.({ user: currentUser });
+        const txHash = await provider.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: nextWalletAddress,
+              to: checkoutPayload.contractAddress,
+              data: checkoutPayload.data,
+              value: checkoutPayload.valueHex,
+            },
+          ],
         });
 
-        await new Promise((resolve) => window.setTimeout(resolve, 950));
+        setCrateModalState((current) => ({
+          ...current,
+          message: `Waiting for Polygon confirmation on ${formatWalletAddress(nextWalletAddress)}...`,
+        }));
+
+        await waitForTransactionReceipt({ provider, txHash });
+
+        const resolveResponse = await fetch('/api/contract/resolve-crate-purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            txHash,
+            crateKey: modalCrate.id,
+            quantity: crateModalState.quantity,
+            recipientWallet: nextWalletAddress,
+          }),
+        });
+        const resolvePayload = await resolveResponse.json().catch(() => null);
+        if (!resolveResponse.ok) {
+          throw new Error(resolvePayload?.message || 'The transaction confirmed, but the minted rewards could not be resolved.');
+        }
+
+        const resolvedRewards = (resolvePayload.mintedRewards || []).map((entry) => {
+          const reward = window.WardrobeForgeTokenCatalog?.getItemByTokenId?.(entry.tokenId);
+          if (!reward?.art) {
+            throw new Error(`Minted token ${entry.tokenId} is not mapped in the NFT catalog.`);
+          }
+
+          return {
+            ...reward,
+            tokenId: entry.tokenId,
+            rollNumber: entry.rollNumber,
+            inventorySrc: reward.inventorySrc || reward.avatarSrc || '',
+          };
+        });
+
+        const syncedRewards = await syncMintedRewardsToAccount(resolvedRewards);
 
         setMintedWalletAddress(nextWalletAddress);
         setCrateModalState((current) => ({
           ...current,
           mode: 'revealed',
-          rewards,
-          message: `${current.quantity} ${current.quantity === 1 ? 'crate has' : 'crates have'} been minted to ${formatWalletAddress(nextWalletAddress)}.`,
+          rewards: syncedRewards,
+          message: `${current.quantity} ${current.quantity === 1 ? 'crate has' : 'crates have'} been minted on Polygon to ${formatWalletAddress(nextWalletAddress)}.`,
         }));
+
+        goto('checkout', null, null, {
+          checkoutSession: {
+            crateId: modalCrate.id,
+            crateName: modalCrate.name,
+            quantity: crateModalState.quantity,
+            totalUsd: modalCrateTotal,
+            totalLabel: formatUsd(modalCrateTotal),
+            paymentMethod: 'Polygon Wallet',
+            rewards: syncedRewards,
+            walletAddress: nextWalletAddress,
+            txHash,
+          },
+        });
       })
       .catch((error) => {
         setCrateModalState((current) => ({
           ...current,
           mode: 'checkout',
           rewards: [],
-          message: error.message || 'Could not open this crate right now.',
+          message: error.message || 'Could not mint this crate on-chain right now.',
         }));
       })
       .finally(() => {
@@ -308,7 +342,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
         <section ref={crateSectionRef} style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
             <div className="pixel" style={{ fontSize: 14 }}>MYSTERY CRATES</div>
-            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// pay {formatUsd(selectedCrateUnitPrice)} or {crateCoinPrice} coins per crate</span>
+            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// mint on Polygon for {formatUsd(selectedCrateUnitPrice)} per crate</span>
           </div>
 
           <div className="grid cols-4 crate-grid">
@@ -322,7 +356,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <img className="crate-image" src="assets/crates/pixel-crate.webp" alt={crate.name} loading="lazy" decoding="async" />
                 </div>
                 <div className="pixel" style={{ fontSize: 11, marginBottom: 6 }}>{crate.name}</div>
-                <div className="mono" style={{ fontSize: 18, opacity: .72, marginBottom: 10 }}>{formatUsd(crate.priceUsd || 0)} / {crateCoinPrice} COINS</div>
+                <div className="mono" style={{ fontSize: 18, opacity: .72, marginBottom: 10 }}>{formatUsd(crate.priceUsd || 0)} ON POLYGON</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {getCrateRaritySummary(crate).map((entry) => (
                     <span key={`${crate.id}-${entry.label}`} className={`chip ${entry.className}`}>{entry.value} {entry.label}</span>
@@ -342,7 +376,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <button className="pxl-btn crate-open-btn crate-open-btn-hero" onClick={() => handleOpenCrate(selectedCrate)}>BUY CRATES</button>
                 </div>
                 <div style={{ position: 'absolute', top: 16, left: 16 }}>
-                  <span className="chip coral">{formatUsd(selectedCrateUnitPrice)} / {crateCoinPrice} COINS</span>
+                  <span className="chip coral">{formatUsd(selectedCrateUnitPrice)} ON POLYGON</span>
                 </div>
                 <div style={{ position: 'absolute', bottom: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between' }} className="pixel">
                   <span style={{ fontSize: 11 }}>{selectedCrate.id.toUpperCase()}</span>
@@ -562,13 +596,14 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <div className="pixel crate-open-title">{crateModalState.mode === 'opening' ? 'OPENING CRATE' : 'CHECKOUT PREVIEW'}</div>
                   {crateModalState.message ? <div className="mono crate-open-subtitle">{crateModalState.message}</div> : null}
                   <div className="crate-reveal-card">
-                    <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'opening' ? 'MINTING NOW' : 'ORDER SUMMARY'}</div>
+                    <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'opening' ? 'MINTING NOW' : 'ON-CHAIN ORDER'}</div>
                     <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
                     <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
                     <div className="pxl-box no-drop mint-detail-box" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
                       <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
                         <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
                         <div className="stat-row"><span className="stat-key">TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
+                        <div className="stat-row"><span className="stat-key">NETWORK</span><span className="stat-val">POLYGON</span></div>
                       </div>
                       <input
                         className="topup-slider"
@@ -588,11 +623,8 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-                      <button className="pxl-btn" onClick={handleCoinCheckout} disabled={checkoutBusy}>
-                        {checkoutBusy ? 'CONNECTING...' : `OPEN FOR ${modalCrateCoinTotal} COINS`}
-                      </button>
-                      <button className="pxl-btn ghost" onClick={handleStripeCheckout} disabled={checkoutBusy}>
-                        {checkoutBusy ? 'MINTING...' : `MINT NFT FOR ${formatUsd(modalCrateTotal)}`}
+                      <button className="pxl-btn" onClick={handleOnchainCheckout} disabled={checkoutBusy}>
+                        {checkoutBusy ? 'CONNECTING...' : `MINT ON POLYGON FOR ${formatUsd(modalCrateTotal)}`}
                       </button>
                     </div>
                   </div>

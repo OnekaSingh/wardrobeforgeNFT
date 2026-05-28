@@ -174,8 +174,18 @@ const ensureEmbeddedWallet = async ({ user }) => {
   return publicAddress;
 };
 
+const getEmbeddedWalletProvider = async ({ user }) => {
+  await ensureEmbeddedWallet({ user });
+  const magic = getMagicInstance();
+  if (!magic?.rpcProvider?.request) {
+    throw new Error('Embedded wallet provider is not available right now.');
+  }
+  return magic.rpcProvider;
+};
+
 window.WardrobeForgeWallet = {
   ensureEmbeddedWallet,
+  getEmbeddedWalletProvider,
   getMagicWalletInfo,
   getWalletConfig,
   setMagicPublishableKey,

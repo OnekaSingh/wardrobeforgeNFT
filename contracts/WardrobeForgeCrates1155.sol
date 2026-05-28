@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /// @title WardrobeForgeCrates1155
 /// @notice Users buy crate products, but the NFTs they receive are wearable item token IDs.
 /// @author WardrobeForge
-/// @dev This contract is designed for the "buy crate, mint item immediately" flow discussed for Wert.
+/// @dev This contract is designed for the "buy crate, mint item immediately" flow used by the app.
 contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
     using Strings for uint256;
 
@@ -95,7 +95,7 @@ contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
         _baseMetadataURI = baseMetadataURI;
     }
 
-    /// @notice Main purchase function for Wert or any other payer flow.
+    /// @notice Main purchase function for direct wallet purchases or approved payer flows.
     /// @dev `msg.sender` can be a payment wallet while `recipient` is the user's wallet.
     function buyCrates(address recipient, uint256 crateId, uint256 quantity) external payable nonReentrant {
         if (recipient == address(0)) revert InvalidRecipient();

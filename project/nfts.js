@@ -51,6 +51,29 @@ const NFT_LIBRARY = [...STARTER_GEAR_LIBRARY, ...GENERATED_GEAR_LIBRARY];
 const NON_STARTER_NFT_LIBRARY = [...GENERATED_GEAR_LIBRARY];
 const HIDDEN_BROWSE_NFT_IDS = new Set(STARTER_GEAR_LIBRARY.map((item) => item.id));
 const BROWSABLE_NFT_LIBRARY = GENERATED_GEAR_LIBRARY.filter(item => !HIDDEN_BROWSE_NFT_IDS.has(item.id));
+const TOKEN_ID_BASE_BY_SLOT = {
+  outfit: 100000,
+  boots: 200000,
+  head: 300000,
+  item: 400000,
+};
+
+const getTokenIdForArt = (item) => {
+  const slotBase = TOKEN_ID_BASE_BY_SLOT[item?.slot];
+  const artValue = String(item?.art || '');
+  const suffix = Number(artValue.split('-').pop());
+  if (!slotBase || !Number.isInteger(suffix) || suffix < 1) return null;
+  return slotBase + suffix;
+};
+
+const TOKEN_ITEM_MAP = Object.fromEntries(
+  GENERATED_GEAR_LIBRARY
+    .map((item) => {
+      const tokenId = getTokenIdForArt(item);
+      return tokenId ? [String(tokenId), item] : null;
+    })
+    .filter(Boolean),
+);
 
 const CRATE_PRICE_USD = 2.99;
 const CRATE_PRICE_COINS = 100;
@@ -153,3 +176,9 @@ window.CRATE_PRICE_USD = CRATE_PRICE_USD;
 window.CRATE_PRICE_COINS = CRATE_PRICE_COINS;
 window.RARITY_COLOR = RARITY_COLOR;
 window.IMAGE_GEAR_MAP = IMAGE_GEAR_MAP;
+window.WardrobeForgeTokenCatalog = {
+  getItemByTokenId(tokenId) {
+    return TOKEN_ITEM_MAP[String(tokenId)] || null;
+  },
+  getTokenIdForArt,
+};
