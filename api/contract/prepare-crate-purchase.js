@@ -1,4 +1,5 @@
 import { parseCheckoutRequest, preparePurchasePayload } from './lib.js';
+import { assertCheckoutCompliance } from './compliance.js';
 
 const toHexQuantity = (value) => `0x${BigInt(value).toString(16)}`;
 
@@ -15,6 +16,11 @@ export default async function handler(request, response) {
   }
 
   try {
+    const complianceDecision = await assertCheckoutCompliance({
+      checkoutRequest,
+      request,
+      stage: 'prepare',
+    });
     const prepared = await preparePurchasePayload(checkoutRequest);
 
     return response.status(200).json({
@@ -29,10 +35,17 @@ export default async function handler(request, response) {
       totalPriceWei: prepared.totalPriceWei.toString(),
       valueHex: toHexQuantity(prepared.totalPriceWei),
       data: prepared.data,
+      compliance: {
+        decision: complianceDecision.decision,
+        riskScore: complianceDecision.riskScore,
+        kycRequired: complianceDecision.kycRequired,
+      },
     });
   } catch (error) {
-    return response.status(500).json({
+    const statusCode = error?.statusCode || 500;
+    return response.status(statusCode).json({
       message: error?.message || 'Could not prepare the contract purchase right now.',
+      compliance: error?.decision || null,
     });
   }
 }

@@ -227,6 +227,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
             crateKey: modalCrate.id,
             quantity: crateModalState.quantity,
             recipientWallet: nextWalletAddress,
+            accountId: currentUser?.id || '',
           }),
         });
         const checkoutPayload = await checkoutResponse.json().catch(() => null);

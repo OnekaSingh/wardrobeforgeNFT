@@ -320,7 +320,148 @@ const TermsPage = () => (
   </div>
 );
 
+const AMLPolicyPage = () => (
+  <div className="page">
+    <div className="legal pxl-box">
+      <h1>AML POLICY</h1>
+      <div className="meta">EFFECTIVE: 06/18/2026 · VERSION 1.0 · WARDROBEFORGE</div>
+
+      <hr className="pxl-hr" />
+
+      <h2>1. PURPOSE</h2>
+      <p>
+        WardrobeForge maintains this Anti-Money Laundering and Sanctions Compliance Policy ("AML Policy") to help
+        prevent the misuse of our Services for money laundering, terrorist financing, sanctions evasion, fraud,
+        market manipulation, or other unlawful activity. This AML Policy applies to WardrobeForge accounts, wallet
+        connections, sponsored Polygon minting, NFT crate purchases, virtual item delivery, and any related
+        blockchain-linked services that WardrobeForge makes available.
+      </p>
+      <p>
+        WardrobeForge is a digital fashion, avatar, and NFT platform. Our current crate flow uses direct on-chain
+        Polygon minting, including sponsored mint transactions in which WardrobeForge may submit a transaction to
+        the smart contract for delivery to a wallet address associated with a user account. Because blockchain
+        transfers are public and generally irreversible, WardrobeForge applies risk-based controls before and after
+        minting activity.
+      </p>
+
+      <h2>2. PROHIBITED USE</h2>
+      <p>
+        You may not use the Services to conceal, transfer, or facilitate proceeds of crime; evade sanctions; finance
+        terrorism; engage with sanctioned persons, entities, regions, or wallet addresses; commit fraud; abuse
+        promotional or sponsored minting systems; or otherwise violate applicable law. WardrobeForge may reject,
+        pause, cancel, or investigate activity that we believe creates legal, regulatory, security, fraud, sanctions,
+        or platform-integrity risk.
+      </p>
+      <p>
+        You are responsible for ensuring that your use of WardrobeForge is lawful in your jurisdiction and that any
+        wallet address you provide is controlled by you or used with proper authorization. You may not provide a
+        wallet address that you know or reasonably should know is connected to stolen funds, ransomware, darknet
+        markets, mixers used for illicit activity, sanctioned activity, or other high-risk conduct.
+      </p>
+
+      <h2>3. CUSTOMER AND WALLET REVIEW</h2>
+      <p>
+        WardrobeForge may collect and review account information, email information, wallet addresses, transaction
+        details, IP-derived location information, device signals, blockchain activity, and other information needed
+        to evaluate risk and operate the Services. We may compare wallet addresses and transaction activity against
+        sanctions lists, blockchain analytics, internal risk rules, fraud signals, velocity limits, and other
+        compliance tools.
+      </p>
+      <p>
+        WardrobeForge may require additional information before allowing continued access to certain features,
+        including higher-value mints, repeated crate purchases, unusual wallet activity, suspected account sharing,
+        mismatched account signals, or activity involving jurisdictions or wallet histories that present elevated
+        risk. Additional review may include identity verification, source-of-funds questions, proof of wallet
+        control, or other information reasonably needed to resolve the risk.
+      </p>
+
+      <h2>4. TRANSACTION MONITORING</h2>
+      <p>
+        WardrobeForge may monitor mint attempts, successful mints, failed checkouts, wallet changes, crate purchase
+        quantity, estimated transaction value, account age, device and network signals, and on-chain activity
+        associated with wallet addresses that interact with the Services. We may apply limits by transaction,
+        wallet, account, device, payment method, region, or time period.
+      </p>
+      <p>
+        Where activity appears suspicious, inconsistent with normal use, connected to prohibited conduct, or
+        designed to avoid limits or review, WardrobeForge may delay fulfillment, disable sponsored minting, block a
+        wallet, restrict an account, cancel pending activity, preserve records, or escalate the matter for manual
+        review. WardrobeForge is not obligated to disclose the details of internal risk rules, screening results, or
+        investigations when doing so could undermine security, compliance, or legal obligations.
+      </p>
+
+      <h2>5. SANCTIONS COMPLIANCE</h2>
+      <p>
+        WardrobeForge does not permit use of the Services by sanctioned persons or entities, or where the use would
+        violate sanctions administered by the U.S. Department of the Treasury's Office of Foreign Assets Control or
+        other applicable sanctions authorities. WardrobeForge may block or reject wallet addresses, accounts, or
+        transactions that appear to involve sanctioned parties, sanctioned jurisdictions, blocked property, or
+        attempts to evade sanctions controls.
+      </p>
+      <p>
+        If WardrobeForge identifies a sanctions concern after a transaction has occurred, we may restrict off-chain
+        account features, withhold additional platform services, preserve relevant records, and take other steps
+        required or permitted by law. Public blockchain records may remain visible even when WardrobeForge restricts
+        access to off-chain features or account services.
+      </p>
+
+      <h2>6. PROHIBITED JURISDICTIONS AND SANCTIONS</h2>
+      <p>
+        You may not use, access, buy, sell, mint, transfer, or otherwise interact with WardrobeForge NFT if you are
+        located in, resident in, incorporated in, established in, or operating from any jurisdiction subject to
+        comprehensive sanctions, embargoes, or similar restrictions under applicable law.
+      </p>
+      <p>
+        This includes, without limitation, Cuba, Iran, North Korea, Syria, the Crimea region of Ukraine, the Donetsk
+        region of Ukraine, and the Luhansk region of Ukraine, as well as any other jurisdiction, region, person,
+        entity, wallet address, or blockchain address restricted under sanctions programs administered by the United
+        States, United Nations, European Union, United Kingdom, or other applicable authority.
+      </p>
+      <p>
+        You may not use WardrobeForge NFT on behalf of, for the benefit of, or in connection with any sanctioned
+        person, entity, wallet, address, or jurisdiction. We may block, restrict, suspend, freeze, or terminate access
+        to accounts, wallets, NFTs, transactions, or services where we identify sanctions risk or where required by
+        law.
+      </p>
+
+      <h2>7. RECORDKEEPING AND REPORTING</h2>
+      <p>
+        WardrobeForge may retain records relating to account activity, wallet screening, compliance decisions,
+        transaction attempts, transaction hashes, block numbers, delivery status, review notes, user communications,
+        and related risk signals. Records may be retained for as long as reasonably necessary to operate the
+        Services, resolve disputes, comply with legal obligations, support audits, and protect WardrobeForge and its
+        users.
+      </p>
+      <p>
+        WardrobeForge may report suspicious, prohibited, or legally significant activity to law enforcement,
+        regulators, blockchain analytics providers, infrastructure partners, payment or wallet service providers, or
+        other parties when we believe disclosure is required by law, permitted by law, or necessary to protect the
+        Services. WardrobeForge may also respond to subpoenas, court orders, lawful requests, and other legal
+        process.
+      </p>
+
+      <h2>8. USER COOPERATION</h2>
+      <p>
+        You agree to provide accurate information and to cooperate with reasonable compliance requests. If you do not
+        provide requested information, provide incomplete or misleading information, use a wallet that presents
+        unacceptable risk, or attempt to bypass WardrobeForge controls, we may limit, suspend, or terminate your
+        access to the Services.
+      </p>
+      <p>
+        WardrobeForge may update this AML Policy as our product, blockchain integrations, legal obligations, and risk
+        controls evolve. Continued use of the Services after an update means you accept the updated AML Policy.
+      </p>
+
+      <h2>9. CONTACT</h2>
+      <p>
+        Questions about this AML Policy or compliance-related concerns may be sent to legal@wardrobeforge.app.
+      </p>
+    </div>
+  </div>
+);
+
 window.ContactPage = ContactPage;
 window.CommissionPage = CommissionPage;
+window.AMLPolicyPage = AMLPolicyPage;
 window.PrivacyPage = PrivacyPage;
 window.TermsPage = TermsPage;

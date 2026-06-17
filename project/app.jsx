@@ -78,6 +78,7 @@ const App = () => {
         {page === 'account' && <AuthPage goto={goto} />}
         {page === 'contact' && <ContactPage />}
         {page === 'commission' && <CommissionPage />}
+        {page === 'aml-policy' && <AMLPolicyPage />}
         {page === 'privacy' && <PrivacyPage />}
         {page === 'terms' && <TermsPage />}
       </main>
@@ -146,6 +147,7 @@ const Footer = ({ goto }) => (
       <a onClick={() => goto('nfts')} style={{ cursor: 'pointer' }}>NFTS</a>·
       <a onClick={() => goto('commission')} style={{ cursor: 'pointer' }}>COMMISSION</a>·
       <a onClick={() => goto('account')} style={{ cursor: 'pointer' }}>SIGN IN</a>·
+      <a onClick={() => goto('aml-policy')} style={{ cursor: 'pointer' }}>AML Policy</a>·
       <a onClick={() => goto('privacy')} style={{ cursor: 'pointer' }}>PRIVACY</a>·
       <a onClick={() => goto('terms')} style={{ cursor: 'pointer' }}>TERMS</a>
     </div>
