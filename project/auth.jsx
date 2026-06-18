@@ -8,6 +8,8 @@ const AUTH_TOPUP_REWARD_CLAIM_KEY = 'wardrobeforge-topup-reward-claim-v1';
 const AUTH_BACKEND_URL_STORAGE_KEY = 'wardrobeforge-backend-url';
 const AUTH_LOCAL_CREDENTIALS_STORAGE_KEY = 'wardrobeforge-auth-local-credentials-v1';
 const AUTH_LOCAL_VERIFICATION_CODES_STORAGE_KEY = 'wardrobeforge-auth-local-verification-codes-v1';
+const AUTH_PURCHASE_HISTORY_STORAGE_KEY = 'wardrobeforge-purchase-history-v1';
+const DEFAULT_CRATE_CONTRACT_ADDRESS = '0xB81B221d3379F21C17A6f70625d1F22a45399DAf';
 const STARTER_OWNED_ART_IDS = ['base-outfit', 'base-shoes'];
 const STARTER_VTO_BALANCE = 300;
 const STARTER_ACCOUNT_XP = 0;
@@ -32,6 +34,12 @@ const getBackendBaseUrl = () => {
 
   return configuredBaseUrl.replace(/\/+$/, '');
 };
+
+const hasExplicitBackendBaseUrl = () => Boolean(
+  trimValue(window.WardrobeForgeConfig?.backendUrl)
+  || trimValue(new URLSearchParams(window.location.search).get('backend'))
+  || trimValue(window.localStorage.getItem(AUTH_BACKEND_URL_STORAGE_KEY))
+);
 
 const setBackendBaseUrl = (nextBaseUrl) => {
   const cleanBaseUrl = trimValue(nextBaseUrl).replace(/\/+$/, '');
@@ -145,6 +153,82 @@ const readLocalCredentials = () => {
 
 const writeLocalCredentials = (credentials) => {
   window.localStorage.setItem(AUTH_LOCAL_CREDENTIALS_STORAGE_KEY, JSON.stringify(credentials));
+};
+
+const updateLocalCredential = (userId, mutator) => {
+  const cleanUserId = trimValue(userId);
+  if (!cleanUserId) return null;
+
+  const credentials = readLocalCredentials();
+  const credentialIndex = credentials.findIndex((entry) => trimValue(entry?.userId) === cleanUserId);
+  if (credentialIndex < 0) return null;
+
+  credentials[credentialIndex] = {
+    ...credentials[credentialIndex],
+    ...mutator(credentials[credentialIndex]),
+  };
+  writeLocalCredentials(credentials);
+  return credentials[credentialIndex];
+};
+
+const readPurchaseHistory = (userId = null) => {
+  try {
+    const raw = window.localStorage.getItem(getScopedStorageKey(AUTH_PURCHASE_HISTORY_STORAGE_KEY, userId));
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed.filter((entry) => entry && typeof entry === 'object') : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+const writePurchaseHistory = (userId, purchases) => {
+  window.localStorage.setItem(
+    getScopedStorageKey(AUTH_PURCHASE_HISTORY_STORAGE_KEY, userId),
+    JSON.stringify(Array.isArray(purchases) ? purchases : []),
+  );
+};
+
+const recordPurchase = (userId, purchase) => {
+  const cleanUserId = trimValue(userId);
+  if (!cleanUserId || !purchase) return null;
+
+  const history = readPurchaseHistory(cleanUserId);
+  const transactionId = trimValue(purchase.txHash || purchase.paymentReceipt || purchase.checkoutId || `purchase_${Date.now().toString(36)}`);
+  const purchaseRecord = {
+    id: trimValue(purchase.checkoutId) || transactionId,
+    crateName: trimValue(purchase.crateName) || 'Crate',
+    quantity: Math.max(1, Number(purchase.quantity) || 1),
+    walletAddress: normalizeWalletAddress(purchase.walletAddress || purchase.recipientWallet),
+    priceLabel: trimValue(purchase.totalLabel) || `$${Number(purchase.totalUsd || 0).toFixed(2)}`,
+    totalUsd: Number(purchase.totalUsd || 0),
+    txHash: trimValue(purchase.txHash),
+    transactionId,
+    contractAddress: trimValue(purchase.contractAddress || DEFAULT_CRATE_CONTRACT_ADDRESS),
+    purchasedAt: purchase.mintedAt || purchase.purchasedAt || new Date().toISOString(),
+    rewards: Array.isArray(purchase.rewards) ? purchase.rewards : [],
+    withdrawals: Array.isArray(purchase.withdrawals) ? purchase.withdrawals : [],
+  };
+
+  const nextHistory = [
+    purchaseRecord,
+    ...history.filter((entry) => trimValue(entry.id) !== purchaseRecord.id && trimValue(entry.transactionId) !== purchaseRecord.transactionId),
+  ];
+  writePurchaseHistory(cleanUserId, nextHistory);
+  return purchaseRecord;
+};
+
+const updatePurchaseRecord = (userId, purchaseId, mutator) => {
+  const cleanPurchaseId = trimValue(purchaseId);
+  const history = readPurchaseHistory(userId);
+  const nextHistory = history.map((entry) => {
+    if (trimValue(entry.id) !== cleanPurchaseId && trimValue(entry.transactionId) !== cleanPurchaseId) return entry;
+    return {
+      ...entry,
+      ...mutator(entry),
+    };
+  });
+  writePurchaseHistory(userId, nextHistory);
+  return nextHistory.find((entry) => trimValue(entry.id) === cleanPurchaseId || trimValue(entry.transactionId) === cleanPurchaseId) || null;
 };
 
 const readLocalVerificationCodes = () => {
@@ -752,6 +836,75 @@ const setCurrentUser = (sessionData) => {
   return user;
 };
 
+const updateProfile = ({ username }) => {
+  const currentSession = readStoredSession();
+  const currentUser = currentSession?.user;
+  const cleanUsername = trimValue(username);
+
+  if (!currentUser?.id) {
+    throw new Error('Sign in before updating your profile.');
+  }
+
+  if (!cleanUsername) {
+    throw new Error('Enter a username.');
+  }
+
+  const existingCredential = findLocalCredential(cleanUsername);
+  if (existingCredential && trimValue(existingCredential.userId) !== currentUser.id) {
+    throw new Error('That username is already taken.');
+  }
+
+  const nextUser = {
+    ...currentUser,
+    username: cleanUsername,
+    displayName: cleanUsername,
+  };
+
+  updateStoredAccount(currentUser.id, (account) => ({
+    ...account,
+    username: cleanUsername,
+    displayName: cleanUsername,
+  }));
+  updateLocalCredential(currentUser.id, () => ({
+    username: cleanUsername,
+  }));
+
+  return setCurrentUser({
+    token: currentSession.token,
+    user: nextUser,
+    loggedInAt: currentSession.loggedInAt,
+  });
+};
+
+const updatePassword = ({ currentPassword, nextPassword }) => {
+  const currentUser = getCurrentUser();
+  const cleanNextPassword = String(nextPassword || '');
+
+  if (!currentUser?.id) {
+    throw new Error('Sign in before changing your password.');
+  }
+
+  if (cleanNextPassword.length < 6) {
+    throw new Error('Use at least 6 characters for the new password.');
+  }
+
+  const updatedCredential = updateLocalCredential(currentUser.id, (credential) => {
+    if (credential?.password && String(credential.password) !== String(currentPassword || '')) {
+      throw new Error('Current password does not match.');
+    }
+
+    return {
+      password: cleanNextPassword,
+    };
+  });
+
+  if (!updatedCredential) {
+    throw new Error('Password changes are available for local demo accounts only.');
+  }
+
+  return true;
+};
+
 const sendVerificationCode = async (email) => {
   const cleanEmail = normalizeEmail(email);
 
@@ -799,6 +952,17 @@ const signUp = async ({ displayName, email, password, verificationCode, agreeToT
     throw new Error('You must agree to the terms and conditions.');
   }
 
+  if (isLocalDevelopmentHost() && !hasExplicitBackendBaseUrl()) {
+    return signUpLocally({
+      displayName: cleanName,
+      email: cleanEmail,
+      password: cleanPassword,
+      verificationCode: cleanVerificationCode,
+      agreeToTerms,
+      subscribeToNews,
+    });
+  }
+
   try {
     const result = await apiRequest('/auth/signup', {
       method: 'POST',
@@ -819,7 +983,11 @@ const signUp = async ({ displayName, email, password, verificationCode, agreeToT
     await syncAccountFromBackend(user?.id, result?.access_token).catch(() => {});
     return user;
   } catch (error) {
-    if (!shouldUseLocalAuthFallback(error)) throw error;
+    const shouldUseDemoSignupFallback = (
+      isLocalDevelopmentHost()
+      && String(error?.message || '').toLowerCase().includes('verification code')
+    );
+    if (!shouldUseLocalAuthFallback(error) && !shouldUseDemoSignupFallback) throw error;
     return signUpLocally({
       displayName: cleanName,
       email: cleanEmail,
@@ -1063,6 +1231,231 @@ const redeemTopUpReward = async ({ userId, claimId, tokens, bonusArt = null }) =
 
 const redeemSquareTopUpReward = redeemTopUpReward;
 
+const AccountProfile = ({ goto }) => {
+  const [profileUser, setProfileUser] = React.useState(() => getCurrentUser());
+  const [username, setUsername] = React.useState(profileUser?.displayName || profileUser?.username || '');
+  const [currentPassword, setCurrentPassword] = React.useState('');
+  const [nextPassword, setNextPassword] = React.useState('');
+  const [feedback, setFeedback] = React.useState('');
+  const [history, setHistory] = React.useState(() => readPurchaseHistory(profileUser?.id));
+  const [withdrawState, setWithdrawState] = React.useState({});
+  const accountSnapshot = getAccountSnapshot(profileUser?.id);
+  const walletAddress = accountSnapshot.walletAddress || profileUser?.walletAddress || '';
+  const formatWalletAddress = (value) => (
+    value && value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value
+  );
+  const isValidAddress = (value) => /^0x[a-fA-F0-9]{40}$/.test(String(value || '').trim());
+  const padAddress = (value) => String(value || '').trim().toLowerCase().replace(/^0x/, '').padStart(64, '0');
+  const padUint = (value) => BigInt(value || 0).toString(16).padStart(64, '0');
+  const encodeSafeTransferFrom = ({ from, to, tokenId }) => (
+    `0xf242432a${padAddress(from)}${padAddress(to)}${padUint(tokenId)}${padUint(1)}${padUint(160)}${padUint(0)}`
+  );
+
+  React.useEffect(() => {
+    const syncUser = () => {
+      const nextUser = getCurrentUser();
+      setProfileUser(nextUser);
+      setUsername(nextUser?.displayName || nextUser?.username || '');
+      setHistory(readPurchaseHistory(nextUser?.id));
+    };
+    window.addEventListener(AUTH_CHANGE_EVENT, syncUser);
+    window.addEventListener('storage', syncUser);
+    return () => {
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncUser);
+      window.removeEventListener('storage', syncUser);
+    };
+  }, []);
+
+  const updateWithdrawState = (purchaseId, patch) => {
+    setWithdrawState((current) => ({
+      ...current,
+      [purchaseId]: {
+        ...(current[purchaseId] || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const handleUsernameSave = () => {
+    try {
+      const nextUser = updateProfile({ username });
+      setProfileUser(nextUser);
+      setFeedback('Username updated.');
+    } catch (error) {
+      setFeedback(error.message || 'Could not update username.');
+    }
+  };
+
+  const handlePasswordSave = () => {
+    try {
+      updatePassword({ currentPassword, nextPassword });
+      setCurrentPassword('');
+      setNextPassword('');
+      setFeedback('Password updated.');
+    } catch (error) {
+      setFeedback(error.message || 'Could not update password.');
+    }
+  };
+
+  const handleWithdrawPurchase = (purchase) => {
+    const purchaseId = trimValue(purchase.id || purchase.transactionId);
+    const purchaseState = withdrawState[purchaseId] || {};
+    const rewards = Array.isArray(purchase.rewards) ? purchase.rewards : [];
+    const selectedTokenId = trimValue(purchaseState.tokenId || rewards[0]?.tokenId);
+    const selectedReward = rewards.find((reward) => String(reward.tokenId) === selectedTokenId) || rewards[0];
+    const destinationWallet = trimValue(purchaseState.address);
+    const custodialWallet = normalizeWalletAddress(purchase.walletAddress || walletAddress);
+    const contractAddress = trimValue(purchase.contractAddress || DEFAULT_CRATE_CONTRACT_ADDRESS);
+
+    if (!selectedReward?.tokenId) {
+      updateWithdrawState(purchaseId, { message: 'Choose a purchased NFT before withdrawing.' });
+      return;
+    }
+
+    if (!isValidAddress(destinationWallet)) {
+      updateWithdrawState(purchaseId, { message: 'Enter the wallet address that should receive the NFT.' });
+      return;
+    }
+
+    if (!isValidAddress(custodialWallet)) {
+      updateWithdrawState(purchaseId, { message: 'The custodial wallet is not available for this purchase.' });
+      return;
+    }
+
+    updateWithdrawState(purchaseId, { busy: true, message: 'Opening the embedded wallet to approve the transfer...' });
+    Promise.resolve()
+      .then(async () => {
+        const provider = await window.WardrobeForgeWallet?.getEmbeddedWalletProvider?.({ user: profileUser });
+        if (!provider?.request) {
+          throw new Error('Embedded wallet provider is not available in this browser.');
+        }
+
+        const transferHash = await provider.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: custodialWallet,
+            to: contractAddress,
+            value: '0x0',
+            data: encodeSafeTransferFrom({
+              from: custodialWallet,
+              to: destinationWallet,
+              tokenId: selectedReward.tokenId,
+            }),
+          }],
+        });
+
+        const updatedPurchase = updatePurchaseRecord(profileUser.id, purchaseId, (entry) => ({
+          withdrawals: [
+            ...(Array.isArray(entry.withdrawals) ? entry.withdrawals : []),
+            {
+              tokenId: selectedReward.tokenId,
+              name: selectedReward.name,
+              to: destinationWallet,
+              txHash: transferHash,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        }));
+        setHistory(readPurchaseHistory(profileUser.id));
+        updateWithdrawState(purchaseId, { busy: false, message: `Transfer submitted: ${transferHash}` });
+        return updatedPurchase;
+      })
+      .catch((error) => {
+        updateWithdrawState(purchaseId, { busy: false, message: error.message || 'Could not start the NFT transfer right now.' });
+      });
+  };
+
+  if (!profileUser) return null;
+
+  return (
+    <div className="profile-shell">
+      <div className="pxl-box profile-card">
+        <div className="chip coral" style={{ marginBottom: 14 }}>PROFILE</div>
+        <div className="pixel" style={{ fontSize: 18, marginBottom: 14 }}>{profileUser.displayName}</div>
+        <div className="profile-grid">
+          <div className="pxl-box no-drop profile-panel">
+            <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 12 }}>ACCOUNT</div>
+            <div className="stat-row"><span className="stat-key">EMAIL</span><span className="stat-val">{profileUser.email}</span></div>
+            <label className="auth-field profile-field">
+              <span className="pixel">USERNAME</span>
+              <input value={username} onChange={(event) => setUsername(event.target.value)} />
+            </label>
+            <button className="pxl-btn" type="button" onClick={handleUsernameSave}>CHANGE USERNAME</button>
+            <div className="stat-row"><span className="stat-key">PASSWORD</span><span className="stat-val">********</span></div>
+            <div className="profile-password-grid">
+              <label className="auth-field profile-field">
+                <span className="pixel">CURRENT</span>
+                <input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
+              </label>
+              <label className="auth-field profile-field">
+                <span className="pixel">NEW PASSWORD</span>
+                <input type="password" value={nextPassword} onChange={(event) => setNextPassword(event.target.value)} />
+              </label>
+            </div>
+            <button className="pxl-btn ghost" type="button" onClick={handlePasswordSave}>CHANGE PASSWORD</button>
+            <div className="stat-row"><span className="stat-key">CUSTODIAL WALLET</span><span className="stat-val profile-wallet-value">{walletAddress || 'NOT CREATED YET'}</span></div>
+            {feedback ? <div className="auth-feedback auth-feedback-success">{feedback}</div> : null}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+              <button className="pxl-btn" onClick={() => goto && goto('avatar')}>OPEN WARDROBE</button>
+              <button className="pxl-btn ghost" onClick={() => { logOut(); setFeedback('You have been signed out.'); }}>LOG OUT</button>
+            </div>
+          </div>
+
+          <div className="pxl-box no-drop profile-panel">
+            <div className="pixel" style={{ fontSize: 10, color: 'var(--coral)', marginBottom: 12 }}>PURCHASES</div>
+            {history.length ? (
+              <div className="purchase-list">
+                {history.map((purchase) => {
+                  const purchaseId = trimValue(purchase.id || purchase.transactionId);
+                  const purchaseState = withdrawState[purchaseId] || {};
+                  const rewards = Array.isArray(purchase.rewards) ? purchase.rewards : [];
+                  const selectedTokenId = purchaseState.tokenId || rewards[0]?.tokenId || '';
+
+                  return (
+                    <div className="purchase-card" key={purchaseId}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+                        <div className="pixel" style={{ fontSize: 10 }}>{purchase.crateName} × {purchase.quantity || 1}</div>
+                        <span className="chip coral">{purchase.priceLabel || `$${Number(purchase.totalUsd || 0).toFixed(2)}`}</span>
+                      </div>
+                      <div className="stat-row"><span className="stat-key">ITEMS</span><span className="stat-val">{rewards.map((reward) => reward.name).join(', ') || 'NFT purchase'}</span></div>
+                      <div className="stat-row"><span className="stat-key">WALLET</span><span className="stat-val profile-wallet-value">{purchase.walletAddress || walletAddress || 'NOT SET'}</span></div>
+                      <div className="stat-row"><span className="stat-key">TX ID</span><span className="stat-val profile-wallet-value">{purchase.txHash || purchase.transactionId || purchase.id}</span></div>
+                      <div className="stat-row"><span className="stat-key">DATE</span><span className="stat-val">{purchase.purchasedAt ? new Date(purchase.purchasedAt).toLocaleDateString() : 'UNKNOWN'}</span></div>
+                      <div className="profile-withdraw-box">
+                        <label className="auth-field profile-field">
+                          <span className="pixel">WITHDRAW NFT</span>
+                          <select value={selectedTokenId} onChange={(event) => updateWithdrawState(purchaseId, { tokenId: event.target.value })}>
+                            {rewards.map((reward, index) => (
+                              <option key={`${purchaseId}-${reward.tokenId || index}`} value={reward.tokenId}>{reward.name} · TOKEN #{reward.tokenId || 'UNKNOWN'}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="auth-field profile-field">
+                          <span className="pixel">SEND TO WALLET</span>
+                          <input value={purchaseState.address || ''} onChange={(event) => updateWithdrawState(purchaseId, { address: event.target.value })} placeholder="0x..." />
+                        </label>
+                        <button className="pxl-btn" type="button" onClick={() => handleWithdrawPurchase(purchase)} disabled={Boolean(purchaseState.busy)}>
+                          {purchaseState.busy ? 'TRANSFERRING...' : 'WITHDRAW'}
+                        </button>
+                        {purchase.withdrawals?.length ? (
+                          <div className="mono" style={{ fontSize: 16, opacity: .75 }}>Withdrawals: {purchase.withdrawals.length}</div>
+                        ) : null}
+                        {purchaseState.message ? <div className="mono" style={{ fontSize: 17 }}>{purchaseState.message}</div> : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mono" style={{ fontSize: 20 }}>No NFT purchases yet.</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null }) => {
   const [mode, setMode] = React.useState('signup');
   const [displayName, setDisplayName] = React.useState('');
@@ -1074,6 +1467,10 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
   const [error, setError] = React.useState('');
   const [success, setSuccess] = React.useState('');
   const [busyAction, setBusyAction] = React.useState('');
+  const displayNameInputRef = React.useRef(null);
+  const emailInputRef = React.useRef(null);
+  const passwordInputRef = React.useRef(null);
+  const verificationCodeInputRef = React.useRef(null);
   const currentUser = getCurrentUser();
   const isBusy = Boolean(busyAction);
 
@@ -1088,7 +1485,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
     setBusyAction('code');
 
     try {
-      const result = await sendVerificationCode(email);
+      const result = await sendVerificationCode(emailInputRef.current?.value || email);
       if (result?.delivery === 'local' && result?.verification_code) {
         setSuccess(`Demo code: ${result.verification_code}`);
       } else {
@@ -1111,16 +1508,19 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
       let user = null;
       if (mode === 'signup') {
         user = await signUp({
-          displayName,
-          email,
-          password,
-          verificationCode,
+          displayName: displayNameInputRef.current?.value || displayName,
+          email: emailInputRef.current?.value || email,
+          password: passwordInputRef.current?.value || password,
+          verificationCode: verificationCodeInputRef.current?.value || verificationCode,
           agreeToTerms,
           subscribeToNews,
         });
         setSuccess(`Welcome, ${user.displayName}. Your account is ready.`);
       } else {
-        user = await logIn({ email, password });
+        user = await logIn({
+          email: emailInputRef.current?.value || email,
+          password: passwordInputRef.current?.value || password,
+        });
         setSuccess(`Welcome back, ${user.displayName}.`);
       }
 
@@ -1157,16 +1557,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
         </div>
 
         {currentUser ? (
-          <div className="auth-session">
-            <div className="chip coral" style={{ marginBottom: 14 }}>SIGNED IN</div>
-            <div className="pixel" style={{ fontSize: 18, marginBottom: 8 }}>{currentUser.displayName}</div>
-            <div className="mono" style={{ fontSize: 20, opacity: 0.75, marginBottom: 6 }}>{currentUser.email}</div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button className="pxl-btn" onClick={() => goto && goto('avatar')}>OPEN WARDROBE</button>
-              <button className="pxl-btn ghost" onClick={handleLogout}>LOG OUT</button>
-            </div>
-            {success && <div className="auth-feedback auth-feedback-success">{success}</div>}
-          </div>
+          <AccountProfile goto={goto} />
         ) : (
           <div className="auth-shell">
             <div className="opts" style={{ marginBottom: 18 }}>
@@ -1179,6 +1570,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
                 <label className="auth-field">
                   <span className="pixel">USERNAME</span>
                   <input
+                    ref={displayNameInputRef}
                     value={displayName}
                     onChange={(event) => setDisplayName(event.target.value)}
                     placeholder="PixelWanderer"
@@ -1189,6 +1581,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
               <label className="auth-field">
                 <span className="pixel">{mode === 'signup' ? 'EMAIL' : 'EMAIL OR USERNAME'}</span>
                 <input
+                  ref={emailInputRef}
                   type={mode === 'signup' ? 'email' : 'text'}
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -1202,6 +1595,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
                   <span className="pixel">VERIFICATION CODE</span>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <input
+                      ref={verificationCodeInputRef}
                       value={verificationCode}
                       onChange={(event) => setVerificationCode(event.target.value)}
                       placeholder="6-digit code"
@@ -1218,6 +1612,7 @@ const AuthPanel = ({ goto, embedded = false, onClose = null, onSuccess = null })
               <label className="auth-field">
                 <span className="pixel">PASSWORD</span>
                 <input
+                  ref={passwordInputRef}
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -1329,11 +1724,15 @@ const AuthPromptModal = ({ open, goto, onClose }) => {
   );
 };
 
-const AuthPage = ({ goto }) => (
-  <div className="page">
-    <AuthPanel goto={goto} />
-  </div>
-);
+const AuthPage = ({ goto }) => {
+  const currentUser = getCurrentUser();
+
+  return (
+    <div className="page">
+      {currentUser ? <AccountProfile goto={goto} /> : <AuthPanel goto={goto} />}
+    </div>
+  );
+};
 
 window.WardrobeForgeAuth = {
   AUTH_CHANGE_EVENT,
@@ -1352,6 +1751,8 @@ window.WardrobeForgeAuth = {
   readStoredAccounts,
   redeemSquareTopUpReward,
   redeemTopUpReward,
+  readPurchaseHistory,
+  recordPurchase,
   refreshSession,
   saveAvatarState,
   saveWalletAddress,
@@ -1361,6 +1762,9 @@ window.WardrobeForgeAuth = {
   signUp,
   spendVtoAndGrantItem,
   getAvatarState,
+  updatePassword,
+  updateProfile,
+  updatePurchaseRecord,
   updateStoredAccount,
 };
 

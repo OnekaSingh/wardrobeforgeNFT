@@ -262,6 +262,17 @@ a{color:inherit; text-decoration:none}
   background: var(--paper-2);
   border: 3px solid var(--ink);
   min-height: 48px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.nav-account-pill:hover{
+  background: #fff;
+  box-shadow: 0 4px 0 0 var(--coral);
+}
+.nav-account-pill:focus-visible{
+  outline: 4px solid var(--coral);
+  outline-offset: 2px;
 }
 
 .auth-hero{
@@ -385,7 +396,7 @@ a{color:inherit; text-decoration:none}
 }
 .topup-reward-confetti{
   position: absolute;
-  inset: 0;
+  inset: 0 -12%;
   pointer-events: none;
   overflow: hidden;
   z-index: 0;
@@ -478,11 +489,11 @@ a{color:inherit; text-decoration:none}
     opacity: 1;
   }
   50%{
-    transform: translate3d(12px, 170px, 0) rotate(90deg);
+    transform: translate3d(calc(var(--confetti-drift, 0px) * .45), 170px, 0) rotate(90deg);
     opacity: 1;
   }
   100%{
-    transform: translate3d(-10px, 380px, 0) rotate(180deg);
+    transform: translate3d(var(--confetti-drift, 0px), 380px, 0) rotate(180deg);
     opacity: 0;
   }
 }
@@ -519,6 +530,53 @@ a{color:inherit; text-decoration:none}
   outline: 4px solid var(--coral);
   outline-offset: 2px;
 }
+.checkout-payment-split{
+  display:grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+  gap: 24px;
+  align-items: start;
+}
+.checkout-form{
+  max-width:none;
+}
+.checkout-form .auth-field span{
+  font-size: 20px;
+}
+.checkout-form .auth-field input{
+  min-height: 52px;
+  padding: 12px 14px;
+}
+.checkout-card-grid,
+.checkout-address-grid{
+  display:grid;
+  gap:10px;
+}
+.checkout-card-grid{
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.checkout-address-grid{
+  grid-template-columns: 1.4fr 1fr 1fr;
+}
+.checkout-summary-box{
+  width: 100%;
+}
+.checkout-summary-box .stat-row{
+  gap: 12px;
+}
+.checkout-summary-box .stat-key{
+  flex: 0 0 auto;
+}
+.checkout-summary-box .stat-val{
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.checkout-summary-box .checkout-wallet-value{
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
 .auth-feedback{
   padding: 12px 14px;
   border-left: 4px solid var(--ink);
@@ -533,6 +591,63 @@ a{color:inherit; text-decoration:none}
   background: #e5fff0;
   color: #124f2d;
   border-left-color: #2b8f54;
+}
+.profile-shell{
+  display:block;
+}
+.profile-card{
+  padding: 22px;
+  background: #fff;
+}
+.profile-grid{
+  display:grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  align-items:start;
+}
+.profile-panel{
+  background: var(--paper-2);
+  padding: 16px;
+}
+.profile-field{
+  margin: 12px 0;
+}
+.profile-field span{
+  font-size: 10px;
+}
+.profile-field select{
+  width:100%;
+  min-height:44px;
+  border: 3px solid var(--ink);
+  background:#fff;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 18px;
+}
+.profile-password-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.profile-wallet-value{
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.purchase-list{
+  display:grid;
+  gap: 14px;
+}
+.purchase-card{
+  background:#fff;
+  border: 3px solid var(--ink);
+  padding: 14px;
+}
+.profile-withdraw-box{
+  display:grid;
+  gap: 10px;
+  margin-top: 12px;
 }
 .auth-benefits{
   display:flex;
@@ -1117,7 +1232,8 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   z-index: 130;
 }
 .crate-open-shell{
-  width: min(920px, 100%);
+  width: min(960px, calc(100vw - 48px));
+  height: min(960px, calc(100vh - 48px));
   max-height: calc(100vh - 48px);
 }
 .crate-open-panel{
@@ -1125,8 +1241,16 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   padding: 22px 22px 26px;
   text-align: center;
   overflow: hidden;
+  height: 100%;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
+}
+.crate-open-panel:not(.crate-open-panel-revealed){
+  padding: 10px 36px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: hidden;
 }
 .crate-open-panel-revealed{
   min-height: 720px;
@@ -1176,6 +1300,18 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   justify-content: space-between;
   margin-bottom: 18px;
 }
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-open-meta{
+  width: 100%;
+  margin-bottom: 8px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-open-meta .chip{
+  font-size: 8px;
+  padding: 5px 7px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-modal-close{
+  font-size: 8px;
+  padding: 7px 9px;
+}
 .crate-open-panel-revealed .crate-open-meta{
   position: absolute;
   inset: 22px 22px auto 22px;
@@ -1191,20 +1327,35 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   justify-content: center;
   cursor: pointer;
 }
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-open-stage{
+  min-height: 168px;
+}
 .crate-open-image{
   width: min(220px, 46vw);
   height: auto;
   image-rendering: pixelated;
   filter: drop-shadow(0 14px 0 rgba(255,161,56,.22));
 }
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-open-image{
+  width: min(168px, 30vw);
+  filter: drop-shadow(0 10px 0 rgba(255,161,56,.18));
+}
 .crate-open-title{
   font-size: 18px;
   margin-bottom: 8px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-open-title{
+  font-size: 17px;
+  margin-bottom: 24px;
 }
 .crate-open-subtitle{
   font-size: 18px;
   opacity: .8;
   margin-bottom: 12px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-open-subtitle{
+  font-size: 15px;
+  margin-bottom: 8px;
 }
 .crate-reveal-card{
   margin: 0 auto;
@@ -1212,6 +1363,65 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
   width: min(420px, 100%);
   background: transparent;
   padding: 8px 8px 16px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-reveal-card{
+  max-width: 620px;
+  width: min(620px, 100%);
+  padding: 2px 6px 6px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-reveal-card > .chip{
+  font-size: 8px;
+  padding: 6px 10px;
+  margin-bottom: 14px !important;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-reveal-card > .pixel{
+  font-size: 13px !important;
+  margin-bottom: 10px !important;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-reveal-card > .mono{
+  font-size: 15px !important;
+  margin-bottom: 12px !important;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .mint-detail-box{
+  padding: 14px 16px !important;
+  margin-bottom: 18px !important;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .mint-detail-box > div:first-child{
+  gap: 4px !important;
+  margin-bottom: 12px !important;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .mint-detail-box .stat-row{
+  padding: 5px 0;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .mint-detail-box .stat-key{
+  flex-basis: 120px;
+  font-size: 7px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .mint-detail-box .stat-val{
+  font-size: 16px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .topup-slider{
+  height: 6px;
+  margin: 14px 0 10px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .topup-slider::-webkit-slider-thumb{
+  width: 16px;
+  height: 16px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .topup-slider::-moz-range-thumb{
+  width: 16px;
+  height: 16px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .topup-slider-scale{
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .crate-reveal-card > div:last-child{
+  gap: 10px !important;
+}
+.crate-open-panel:not(.crate-open-panel-revealed) .pxl-btn{
+  font-size: 10px;
+  padding: 12px 14px;
 }
 .crate-auth-code{
   margin: 0 auto 18px;
@@ -1415,6 +1625,11 @@ h3.pixel{ font-size: 12px; line-height:1.4; letter-spacing:.06em }
 }
 @media (max-width: 800px){
   .split{ grid-template-columns: 1fr }
+  .checkout-payment-split,
+  .checkout-card-grid,
+  .checkout-address-grid{ grid-template-columns: 1fr; }
+  .profile-grid,
+  .profile-password-grid{ grid-template-columns: 1fr; }
   .crate-detail-split{ grid-template-columns: 1fr; }
   .crate-detail-hero{ border-right: none; border-bottom: 4px solid var(--ink); min-height: 320px; }
   .crate-detail-open-wrap{ bottom: 56px; width: min(320px, calc(100% - 36px)); }

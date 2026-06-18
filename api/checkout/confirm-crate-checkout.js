@@ -1,6 +1,19 @@
 import { createCratePaymentReceipt, parseCheckoutRequest, trimValue } from '../contract/lib.js';
 
 const getCrateUnitPriceUsd = () => Math.max(0.01, Number(process.env.WF_CRATE_PRICE_USD || 2.99));
+const getGasFeeUsd = () => Number(Math.max(0, Number(process.env.WF_GAS_FEE_USD || 0.01)).toFixed(2));
+const getCheckoutTotals = (quantity) => {
+  const nftPriceUsd = Number((getCrateUnitPriceUsd() * quantity).toFixed(2));
+  const gasFeeUsd = getGasFeeUsd();
+  const totalUsd = Number((nftPriceUsd + gasFeeUsd).toFixed(2));
+
+  return {
+    nftPriceUsd,
+    gasFeeUsd,
+    totalUsd,
+    totalLabel: `$${totalUsd.toFixed(2)}`,
+  };
+};
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -25,11 +38,11 @@ export default async function handler(request, response) {
     return response.status(400).json({ message: 'Missing checkout session.' });
   }
 
-  const totalUsd = Number((getCrateUnitPriceUsd() * checkoutRequest.quantity).toFixed(2));
+  const totals = getCheckoutTotals(checkoutRequest.quantity);
   const paymentReceipt = createCratePaymentReceipt({
     checkoutRequest,
     accountId: request.body?.accountId || request.body?.userId,
-    totalUsd,
+    totalUsd: totals.totalUsd,
   });
 
   return response.status(200).json({
@@ -38,8 +51,7 @@ export default async function handler(request, response) {
     crateKey: checkoutRequest.crateKey,
     quantity: checkoutRequest.quantity,
     recipientWallet: checkoutRequest.recipientWallet,
-    totalUsd,
-    totalLabel: `$${totalUsd.toFixed(2)}`,
+    ...totals,
     paymentMethod: 'Card / Fiat',
     status: 'paid',
     paymentReceipt,

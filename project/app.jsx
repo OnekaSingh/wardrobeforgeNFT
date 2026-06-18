@@ -68,7 +68,7 @@ const App = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Nav page={page} goto={goto} currentUser={currentUser} />
+      {page !== 'checkout' ? <Nav page={page} goto={goto} currentUser={currentUser} /> : null}
 
       <main style={{ flex: 1 }} className={tweaks.scanlines ? '' : 'no-scanlines'}>
         {page === 'main' && <MainPage goto={goto} currentUser={currentUser} />}
@@ -83,7 +83,7 @@ const App = () => {
         {page === 'terms' && <TermsPage />}
       </main>
 
-      <Footer goto={goto} />
+      {page !== 'checkout' ? <Footer goto={goto} /> : null}
       {AuthModalComponent && <AuthModalComponent open={isAuthModalOpen} goto={goto} onClose={closeAuthModal} />}
 
       <TweaksPanel title="Tweaks">
@@ -121,10 +121,10 @@ const Nav = ({ page, goto, currentUser }) => {
       <div className="nav-account">
         {currentUser ? (
           <>
-            <div className="nav-account-pill">
+            <button className="nav-account-pill" type="button" onClick={() => goto('account')}>
               <span className="chip coral">LIVE</span>
               <span className="mono">{currentUser.displayName}</span>
-            </div>
+            </button>
             <button className="pxl-btn ghost" onClick={handleLogout}>LOG OUT</button>
           </>
         ) : (
