@@ -141,9 +141,9 @@ The app flow is:
 
 1. map the selected crate UI to a numeric `crateId`
 2. map the slider to `quantity`
-3. calculate the required POL amount
-4. ABI-encode `buyCrates(recipient, crateId, quantity)`
-5. submit the transaction from the buyer wallet on Polygon
+3. create and confirm card checkout
+4. issue a paid mint authorization for the exact recipient wallet, crate, and quantity
+5. relay `redeemPaidCrates(recipient, crateId, quantity, paymentId, deadline, signature)` on Polygon
 6. decode the `CrateOpened` events after confirmation
 
 ## Production TODOs
