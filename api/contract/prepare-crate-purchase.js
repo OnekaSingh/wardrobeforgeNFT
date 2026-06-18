@@ -1,4 +1,4 @@
-import { parseCheckoutRequest, preparePurchasePayload } from './lib.js';
+import { parseCheckoutRequest, preparePaidMintPayload, requireVerifiedCratePayment } from './lib.js';
 import { assertCheckoutCompliance } from './compliance.js';
 
 const toHexQuantity = (value) => `0x${BigInt(value).toString(16)}`;
@@ -16,12 +16,17 @@ export default async function handler(request, response) {
   }
 
   try {
+    const paymentReceipt = requireVerifiedCratePayment({
+      body: request.body || {},
+      checkoutRequest,
+    });
+
     const complianceDecision = await assertCheckoutCompliance({
       checkoutRequest,
       request,
       stage: 'prepare',
     });
-    const prepared = await preparePurchasePayload(checkoutRequest);
+    const prepared = await preparePaidMintPayload({ checkoutRequest, paymentReceipt });
 
     return response.status(200).json({
       crateId: checkoutRequest.crateId,
@@ -33,8 +38,10 @@ export default async function handler(request, response) {
       chainIdHex: '0x89',
       contractAddress: prepared.contractAddress,
       totalPriceWei: prepared.totalPriceWei.toString(),
-      valueHex: toHexQuantity(prepared.totalPriceWei),
+      valueHex: prepared.valueHex || toHexQuantity(prepared.totalPriceWei),
       data: prepared.data,
+      paymentId: prepared.paymentId,
+      mintAuthorizationDeadline: prepared.deadline.toString(),
       compliance: {
         decision: complianceDecision.decision,
         riskScore: complianceDecision.riskScore,

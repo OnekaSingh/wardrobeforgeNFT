@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /// @title WardrobeForgeCrates1155
 /// @notice Users buy crate products, but the NFTs they receive are wearable item token IDs.
@@ -12,6 +14,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /// @dev This contract is designed for the "buy crate, mint item immediately" flow used by the app.
 contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
     using Strings for uint256;
+    using ECDSA for bytes32;
+    using MessageHashUtils for bytes32;
 
     /// @notice Configuration for a purchasable crate product.
     struct CrateConfig {
@@ -49,6 +53,8 @@ contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
     mapping(uint256 => bool) public itemTokenExists;
     /// @notice Addresses allowed to pay on behalf of users when allowlist mode is enabled.
     mapping(address => bool) public approvedPayers;
+    /// @notice Tracks fiat-paid mint authorizations that have already been redeemed.
+    mapping(bytes32 => bool) public usedPaidMintAuthorizations;
 
     event TreasuryUpdated(address indexed treasury);
     event PayerAllowlistModeUpdated(bool enabled);
@@ -70,6 +76,13 @@ contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
         uint256 indexed tokenId,
         uint256 rollNumber
     );
+    event PaidCrateRedeemed(
+        address indexed signer,
+        address indexed recipient,
+        uint256 indexed crateId,
+        uint256 quantity,
+        bytes32 paymentId
+    );
 
     error InvalidRecipient();
     error CrateNotActive();
@@ -80,6 +93,9 @@ contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
     error InvalidRewardWeight();
     error UnknownItemToken(uint256 tokenId);
     error TreasuryTransferFailed();
+    error InvalidPaymentAuthorization();
+    error PaymentAuthorizationExpired();
+    error PaymentAuthorizationAlreadyUsed();
 
     /// @notice Deploys the crate purchase contract.
     /// @param initialOwner Account that controls admin-only configuration functions.
@@ -101,27 +117,49 @@ contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
         if (recipient == address(0)) revert InvalidRecipient();
         if (payerAllowlistEnabled && !approvedPayers[msg.sender]) revert UnauthorizedPayer(msg.sender);
 
-        CrateConfig memory crate = crateConfigs[crateId];
-        if (!crate.active) revert CrateNotActive();
-        if (quantity == 0 || quantity > crate.maxQuantityPerTx) revert InvalidQuantity();
-
-        uint256 totalPriceWei = crate.priceWei * quantity;
+        uint256 totalPriceWei = _quoteCratePurchase(crateId, quantity);
         if (msg.value != totalPriceWei) revert IncorrectPayment(totalPriceWei, msg.value);
 
-        RewardOption[] storage rewards = _crateRewards[crateId];
-        uint256 totalWeight = crateTotalWeight[crateId];
-        if (rewards.length == 0 || totalWeight == 0) revert EmptyRewardTable();
-
         emit CratePurchased(msg.sender, recipient, crateId, quantity, totalPriceWei);
-
-        for (uint256 roll = 0; roll < quantity; roll++) {
-            uint256 tokenId = _drawReward(crateId, recipient, roll, totalWeight);
-            _mint(recipient, tokenId, 1, "");
-            emit CrateOpened(recipient, crateId, tokenId, roll + 1);
-        }
+        _openCrates(recipient, crateId, quantity);
 
         (bool ok,) = treasury.call{value: msg.value}("");
         if (!ok) revert TreasuryTransferFailed();
+    }
+
+    /// @notice Mints crates after off-chain fiat checkout. A relayer may pay Polygon gas.
+    function redeemPaidCrates(
+        address recipient,
+        uint256 crateId,
+        uint256 quantity,
+        bytes32 paymentId,
+        uint256 deadline,
+        bytes calldata signature
+    ) external nonReentrant {
+        if (recipient == address(0)) revert InvalidRecipient();
+        if (block.timestamp > deadline) revert PaymentAuthorizationExpired();
+
+        bytes32 authorizationHash = getPaidMintAuthorizationHash(recipient, crateId, quantity, paymentId, deadline);
+        if (usedPaidMintAuthorizations[authorizationHash]) revert PaymentAuthorizationAlreadyUsed();
+
+        address signer = authorizationHash.toEthSignedMessageHash().recover(signature);
+        if (signer != owner()) revert InvalidPaymentAuthorization();
+
+        usedPaidMintAuthorizations[authorizationHash] = true;
+        emit PaidCrateRedeemed(signer, recipient, crateId, quantity, paymentId);
+        emit CratePurchased(msg.sender, recipient, crateId, quantity, 0);
+        _openCrates(recipient, crateId, quantity);
+    }
+
+    /// @notice Returns the signed payload hash for a fiat-paid mint authorization.
+    function getPaidMintAuthorizationHash(
+        address recipient,
+        uint256 crateId,
+        uint256 quantity,
+        bytes32 paymentId,
+        uint256 deadline
+    ) public view returns (bytes32) {
+        return keccak256(abi.encode(address(this), block.chainid, recipient, crateId, quantity, paymentId, deadline));
     }
 
     /// @notice Returns the current payout table for a crate.
@@ -134,6 +172,10 @@ contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
     /// @param crateId Numeric crate identifier used by frontend and checkout integrations.
     /// @param quantity Number of crates to buy in a single purchase.
     function quoteCratePurchase(uint256 crateId, uint256 quantity) external view returns (uint256 totalPriceWei) {
+        return _quoteCratePurchase(crateId, quantity);
+    }
+
+    function _quoteCratePurchase(uint256 crateId, uint256 quantity) internal view returns (uint256 totalPriceWei) {
         CrateConfig memory crate = crateConfigs[crateId];
         if (!crate.active) revert CrateNotActive();
         if (quantity == 0 || quantity > crate.maxQuantityPerTx) revert InvalidQuantity();
@@ -223,6 +265,21 @@ contract WardrobeForgeCrates1155 is ERC1155, Ownable, ReentrancyGuard {
     /// @inheritdoc ERC1155
     function uri(uint256 tokenId) public view override returns (string memory) {
         return string.concat(_baseMetadataURI, tokenId.toString(), ".json");
+    }
+
+    function _openCrates(address recipient, uint256 crateId, uint256 quantity) internal {
+        CrateConfig memory crate = crateConfigs[crateId];
+        if (!crate.active) revert CrateNotActive();
+        if (quantity == 0 || quantity > crate.maxQuantityPerTx) revert InvalidQuantity();
+
+        uint256 totalWeight = crateTotalWeight[crateId];
+        if (_crateRewards[crateId].length == 0 || totalWeight == 0) revert EmptyRewardTable();
+
+        for (uint256 roll = 0; roll < quantity; roll++) {
+            uint256 tokenId = _drawReward(crateId, recipient, roll, totalWeight);
+            _mint(recipient, tokenId, 1, "");
+            emit CrateOpened(recipient, crateId, tokenId, roll + 1);
+        }
     }
 
     /// @dev Placeholder randomness for scaffold purposes only.

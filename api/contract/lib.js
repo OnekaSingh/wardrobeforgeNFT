@@ -1,4 +1,6 @@
-import { createPublicClient, createWalletClient, decodeEventLog, encodeFunctionData, http } from 'viem';
+import crypto from 'node:crypto';
+
+import { createPublicClient, createWalletClient, decodeEventLog, encodeAbiParameters, encodeFunctionData, http, keccak256 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 
@@ -21,6 +23,20 @@ export const BUY_CRATES_ABI = [
     name: 'buyCrates',
     outputs: [],
     stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'recipient', type: 'address' },
+      { internalType: 'uint256', name: 'crateId', type: 'uint256' },
+      { internalType: 'uint256', name: 'quantity', type: 'uint256' },
+      { internalType: 'bytes32', name: 'paymentId', type: 'bytes32' },
+      { internalType: 'uint256', name: 'deadline', type: 'uint256' },
+      { internalType: 'bytes', name: 'signature', type: 'bytes' },
+    ],
+    name: 'redeemPaidCrates',
+    outputs: [],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
   {
@@ -75,13 +91,163 @@ export const getPolygonRpcUrl = () => {
 
 export const getContractAddress = () => trimValue(process.env.WF_CRATE_CONTRACT_ADDRESS) || DEFAULT_CONTRACT_ADDRESS;
 
-export const getSponsoredPayerPrivateKey = () => {
-  const configuredPrivateKey = trimValue(process.env.WF_SPONSORED_PAYER_PRIVATE_KEY);
-  if (!/^0x[a-fA-F0-9]{64}$/.test(configuredPrivateKey)) {
-    throw new Error('Sponsored minting is not configured yet. Add WF_SPONSORED_PAYER_PRIVATE_KEY on the server.');
+const base64UrlEncode = (value) => Buffer.from(value).toString('base64url');
+const base64UrlDecode = (value) => Buffer.from(String(value || ''), 'base64url').toString('utf8');
+
+const getPaymentReceiptSecret = () => {
+  const configuredSecret = trimValue(process.env.WF_CRATE_PAYMENT_RECEIPT_SECRET);
+  if (configuredSecret) return configuredSecret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Crate checkout is not configured yet. Add WF_CRATE_PAYMENT_RECEIPT_SECRET on the server.');
+  }
+  return 'wardrobeforge-local-payment-receipt-secret';
+};
+
+const signPaymentReceiptPayload = (payload) => (
+  crypto
+    .createHmac('sha256', getPaymentReceiptSecret())
+    .update(payload)
+    .digest('base64url')
+);
+
+const timingSafeEqual = (left, right) => {
+  const leftBuffer = Buffer.from(String(left || ''));
+  const rightBuffer = Buffer.from(String(right || ''));
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
+export const createPaymentId = () => `0x${crypto.randomBytes(32).toString('hex')}`;
+
+export const createCratePaymentReceipt = ({ checkoutRequest, accountId = '', totalUsd = 0 }) => {
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    version: 1,
+    status: 'paid',
+    checkoutId: crypto.randomUUID(),
+    paymentId: createPaymentId(),
+    accountId: trimValue(accountId),
+    crateId: checkoutRequest.crateId,
+    crateKey: checkoutRequest.crateKey,
+    quantity: checkoutRequest.quantity,
+    recipientWallet: checkoutRequest.recipientWallet,
+    totalUsd: Number(totalUsd || 0),
+    issuedAt: now,
+    expiresAt: now + (60 * 60),
+  };
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  return `${encodedPayload}.${signPaymentReceiptPayload(encodedPayload)}`;
+};
+
+export const verifyCratePaymentReceipt = ({ receiptToken, checkoutRequest, accountId = '' }) => {
+  const [encodedPayload, signature] = String(receiptToken || '').split('.');
+  if (!encodedPayload || !signature || !timingSafeEqual(signature, signPaymentReceiptPayload(encodedPayload))) {
+    const error = new Error('Complete checkout before starting the Polygon mint step.');
+    error.statusCode = 402;
+    throw error;
   }
 
-  return configuredPrivateKey;
+  let receipt;
+  try {
+    receipt = JSON.parse(base64UrlDecode(encodedPayload));
+  } catch (error) {
+    const receiptError = new Error('Invalid checkout receipt.');
+    receiptError.statusCode = 402;
+    throw receiptError;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const cleanAccountId = trimValue(accountId);
+  const receiptAccountId = trimValue(receipt.accountId);
+  const matchesCheckout = receipt?.status === 'paid'
+    && receipt.crateId === checkoutRequest.crateId
+    && receipt.crateKey === checkoutRequest.crateKey
+    && Number(receipt.quantity) === checkoutRequest.quantity
+    && trimValue(receipt.recipientWallet).toLowerCase() === checkoutRequest.recipientWallet.toLowerCase()
+    && /^0x[a-fA-F0-9]{64}$/.test(trimValue(receipt.paymentId))
+    && Number(receipt.expiresAt) > now
+    && (!cleanAccountId || !receiptAccountId || cleanAccountId === receiptAccountId);
+
+  if (!matchesCheckout) {
+    const error = new Error('Checkout receipt does not match this Polygon mint request.');
+    error.statusCode = 402;
+    throw error;
+  }
+
+  return receipt;
+};
+
+export const requireVerifiedCratePayment = ({ body = {}, checkoutRequest }) => (
+  verifyCratePaymentReceipt({
+    receiptToken: body.paymentReceipt,
+    checkoutRequest,
+    accountId: body.accountId || body.userId,
+  })
+);
+
+export const createPaidMintAuthorization = async ({ checkoutRequest, paymentReceipt }) => {
+  const configuredPrivateKey = trimValue(process.env.WF_PAID_MINT_SIGNER_PRIVATE_KEY || process.env.POLYGON_PRIVATE_KEY);
+  if (!/^0x[a-fA-F0-9]{64}$/.test(configuredPrivateKey)) {
+    throw new Error('Paid mint authorization is not configured yet. Add WF_PAID_MINT_SIGNER_PRIVATE_KEY on the server.');
+  }
+
+  const contractAddress = getContractAddress();
+  const deadline = BigInt(Math.min(Number(paymentReceipt.expiresAt), Math.floor(Date.now() / 1000) + (60 * 30)));
+  const paymentId = trimValue(paymentReceipt.paymentId);
+  const chainId = BigInt(polygon.id);
+  const authorizationHash = keccak256(encodeAbiParameters(
+    [
+      { type: 'address' },
+      { type: 'uint256' },
+      { type: 'address' },
+      { type: 'uint256' },
+      { type: 'uint256' },
+      { type: 'bytes32' },
+      { type: 'uint256' },
+    ],
+    [
+      contractAddress,
+      chainId,
+      checkoutRequest.recipientWallet,
+      BigInt(checkoutRequest.crateId),
+      BigInt(checkoutRequest.quantity),
+      paymentId,
+      deadline,
+    ],
+  ));
+  const signer = privateKeyToAccount(configuredPrivateKey);
+  const signature = await signer.signMessage({ message: { raw: authorizationHash } });
+
+  return {
+    contractAddress,
+    paymentId,
+    deadline,
+    signature,
+  };
+};
+
+export const preparePaidMintPayload = async ({ checkoutRequest, paymentReceipt }) => {
+  const authorization = await createPaidMintAuthorization({ checkoutRequest, paymentReceipt });
+  const data = encodeFunctionData({
+    abi: BUY_CRATES_ABI,
+    functionName: 'redeemPaidCrates',
+    args: [
+      checkoutRequest.recipientWallet,
+      BigInt(checkoutRequest.crateId),
+      BigInt(checkoutRequest.quantity),
+      authorization.paymentId,
+      authorization.deadline,
+      authorization.signature,
+    ],
+  });
+
+  return {
+    contractAddress: authorization.contractAddress,
+    totalPriceWei: 0n,
+    data,
+    valueHex: '0x0',
+    paymentId: authorization.paymentId,
+    deadline: authorization.deadline,
+  };
 };
 
 export const getPublicClient = () => createPublicClient({
@@ -89,10 +255,21 @@ export const getPublicClient = () => createPublicClient({
   transport: http(getPolygonRpcUrl()),
 });
 
-export const getSponsoredPayerAccount = () => privateKeyToAccount(getSponsoredPayerPrivateKey());
+export const getPaidMintRelayerAccount = () => {
+  const configuredPrivateKey = trimValue(
+    process.env.WF_PAID_MINT_RELAYER_PRIVATE_KEY
+    || process.env.WF_PAID_MINT_SIGNER_PRIVATE_KEY
+    || process.env.POLYGON_PRIVATE_KEY,
+  );
+  if (!/^0x[a-fA-F0-9]{64}$/.test(configuredPrivateKey)) {
+    throw new Error('Paid mint relayer is not configured yet. Add WF_PAID_MINT_RELAYER_PRIVATE_KEY on the server.');
+  }
 
-export const getSponsoredWalletClient = () => createWalletClient({
-  account: getSponsoredPayerAccount(),
+  return privateKeyToAccount(configuredPrivateKey);
+};
+
+export const getPaidMintRelayerClient = () => createWalletClient({
+  account: getPaidMintRelayerAccount(),
   chain: polygon,
   transport: http(getPolygonRpcUrl()),
 });
@@ -120,113 +297,6 @@ export const parseCheckoutRequest = (body = {}) => {
     crateKey,
     quantity,
     recipientWallet,
-  };
-};
-
-export const preparePurchasePayload = async ({ crateId, quantity, recipientWallet }) => {
-  const publicClient = getPublicClient();
-  const contractAddress = getContractAddress();
-  const payerAllowlistEnabled = await publicClient.readContract({
-    address: contractAddress,
-    abi: BUY_CRATES_ABI,
-    functionName: 'payerAllowlistEnabled',
-  });
-
-  const totalPriceWei = await publicClient.readContract({
-    address: contractAddress,
-    abi: BUY_CRATES_ABI,
-    functionName: 'quoteCratePurchase',
-    args: [BigInt(crateId), BigInt(quantity)],
-  });
-
-  const data = encodeFunctionData({
-    abi: BUY_CRATES_ABI,
-    functionName: 'buyCrates',
-    args: [recipientWallet, BigInt(crateId), BigInt(quantity)],
-  });
-
-  return {
-    contractAddress,
-    totalPriceWei,
-    data,
-    payerAllowlistEnabled,
-  };
-};
-
-export const assertSponsoredPayerCanPurchase = async ({ publicClient, contractAddress, payerAddress }) => {
-  const payerAllowlistEnabled = await publicClient.readContract({
-    address: contractAddress,
-    abi: BUY_CRATES_ABI,
-    functionName: 'payerAllowlistEnabled',
-  });
-
-  if (!payerAllowlistEnabled) {
-    return { payerAllowlistEnabled, approved: true };
-  }
-
-  const approved = await publicClient.readContract({
-    address: contractAddress,
-    abi: BUY_CRATES_ABI,
-    functionName: 'approvedPayers',
-    args: [payerAddress],
-  });
-
-  if (!approved) {
-    throw new Error(`Sponsored minting is blocked because ${payerAddress} is not approved as a payer on the contract.`);
-  }
-
-  return { payerAllowlistEnabled, approved };
-};
-
-export const executeSponsoredPurchase = async ({ crateId, quantity, recipientWallet }) => {
-  const publicClient = getPublicClient();
-  const contractAddress = getContractAddress();
-  const walletClient = getSponsoredWalletClient();
-  const payerAddress = walletClient.account.address;
-
-  await assertSponsoredPayerCanPurchase({
-    publicClient,
-    contractAddress,
-    payerAddress,
-  });
-
-  const prepared = await preparePurchasePayload({
-    crateId,
-    quantity,
-    recipientWallet,
-  });
-
-  const txHash = await walletClient.sendTransaction({
-    account: walletClient.account,
-    chain: polygon,
-    to: contractAddress,
-    data: prepared.data,
-    value: prepared.totalPriceWei,
-  });
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-  if (receipt.status !== 'success') {
-    throw new Error('The sponsored purchase transaction did not succeed on Polygon.');
-  }
-
-  const mintedRewards = parseMintedRewardsFromReceipt({
-    receipt,
-    recipientWallet,
-    crateId,
-    contractAddress,
-  });
-
-  if (!mintedRewards.length) {
-    throw new Error('The transaction confirmed, but no crate rewards were found for this wallet.');
-  }
-
-  return {
-    txHash,
-    receipt,
-    mintedRewards,
-    payerAddress,
-    totalPriceWei: prepared.totalPriceWei,
-    contractAddress,
   };
 };
 

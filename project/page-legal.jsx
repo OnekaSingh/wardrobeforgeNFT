@@ -333,15 +333,13 @@ const AMLPolicyPage = () => (
         WardrobeForge maintains this Anti-Money Laundering and Sanctions Compliance Policy ("AML Policy") to help
         prevent the misuse of our Services for money laundering, terrorist financing, sanctions evasion, fraud,
         market manipulation, or other unlawful activity. This AML Policy applies to WardrobeForge accounts, wallet
-        connections, sponsored Polygon minting, NFT crate purchases, virtual item delivery, and any related
+        connections, Polygon minting, NFT crate purchases, virtual item delivery, and any related
         blockchain-linked services that WardrobeForge makes available.
       </p>
       <p>
-        WardrobeForge is a digital fashion, avatar, and NFT platform. Our current crate flow uses direct on-chain
-        Polygon minting, including sponsored mint transactions in which WardrobeForge may submit a transaction to
-        the smart contract for delivery to a wallet address associated with a user account. Because blockchain
-        transfers are public and generally irreversible, WardrobeForge applies risk-based controls before and after
-        minting activity.
+        WardrobeForge is a digital fashion, avatar, and NFT platform. Our current crate flow requires fiat checkout
+        before a user signs a Polygon mint transaction from their wallet. Because blockchain transfers are public
+        and generally irreversible, WardrobeForge applies risk-based controls before and after minting activity.
       </p>
 
       <h2>2. PROHIBITED USE</h2>

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { network } from "hardhat";
-import { getAddress, parseEther } from "viem";
+import { encodeAbiParameters, getAddress, keccak256, parseEther } from "viem";
 
 const BASE_URI = "ipfs://wardrobeforge/";
 const CRATE_ID = 1n;
@@ -144,6 +144,78 @@ describe("WardrobeForgeCrates1155", async function () {
     ]);
 
     assert.equal(recipientBalance, 1n);
+  });
+
+  it("lets a relayer redeem card-paid crates without charging the recipient wallet", async function () {
+    const { viem, publicClient, contract, owner, approvedPayer, recipient, treasury } = await deployFixture();
+    const paymentId = keccak256(new TextEncoder().encode("paid-checkout-1"));
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+    const authorizationHash = keccak256(
+      encodeAbiParameters(
+        [
+          { type: "address" },
+          { type: "uint256" },
+          { type: "address" },
+          { type: "uint256" },
+          { type: "uint256" },
+          { type: "bytes32" },
+          { type: "uint256" },
+        ],
+        [
+          contract.address,
+          BigInt(await publicClient.getChainId()),
+          recipient.account.address,
+          CRATE_ID,
+          2n,
+          paymentId,
+          deadline,
+        ],
+      ),
+    );
+    const signature = await owner.signMessage({
+      account: owner.account,
+      message: { raw: authorizationHash },
+    });
+
+    const treasuryBalanceBefore = await publicClient.getBalance({
+      address: treasury.account.address,
+    });
+
+    await viem.assertions.emitWithArgs(
+      contract.write.redeemPaidCrates(
+        [recipient.account.address, CRATE_ID, 2n, paymentId, deadline, signature],
+        {
+          account: approvedPayer.account,
+          value: 0n,
+        },
+      ),
+      contract,
+      "PaidCrateRedeemed",
+      [getAddress(owner.account.address), getAddress(recipient.account.address), CRATE_ID, 2n, paymentId],
+    );
+
+    const recipientBalance = await contract.read.balanceOf([
+      recipient.account.address,
+      ITEM_TOKEN_ID,
+    ]);
+    const treasuryBalanceAfter = await publicClient.getBalance({
+      address: treasury.account.address,
+    });
+
+    assert.equal(recipientBalance, 2n);
+    assert.equal(treasuryBalanceAfter, treasuryBalanceBefore);
+
+    await viem.assertions.revertWithCustomError(
+      contract.write.redeemPaidCrates(
+        [recipient.account.address, CRATE_ID, 2n, paymentId, deadline, signature],
+        {
+          account: approvedPayer.account,
+          value: 0n,
+        },
+      ),
+      contract,
+      "PaymentAuthorizationAlreadyUsed",
+    );
   });
 
   it("reverts when the requested quantity exceeds the crate transaction limit", async function () {

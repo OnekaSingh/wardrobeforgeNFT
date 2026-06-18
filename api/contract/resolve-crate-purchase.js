@@ -1,4 +1,4 @@
-import { getContractAddress, getPublicClient, parseMintedRewardsFromReceipt, parseCheckoutRequest, trimValue } from './lib.js';
+import { getContractAddress, getPublicClient, parseMintedRewardsFromReceipt, parseCheckoutRequest, requireVerifiedCratePayment, trimValue } from './lib.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -18,6 +18,11 @@ export default async function handler(request, response) {
   }
 
   try {
+    requireVerifiedCratePayment({
+      body: request.body || {},
+      checkoutRequest,
+    });
+
     const publicClient = getPublicClient();
     const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
     if (receipt.status !== 'success') {

@@ -24,7 +24,7 @@ const TopUpPage = ({ currentUser, goto, openAuthModal }) => {
         <div className="pxl-box" style={{ background: '#fff', padding: 24, marginTop: 28 }}>
           <div className="pixel" style={{ fontSize: 14, marginBottom: 10 }}>TOP-UP STATUS</div>
           <div className="mono" style={{ fontSize: 19, lineHeight: 1.5 }}>
-            Coin top-ups are currently unavailable. NFT purchases now use the direct on-chain Polygon mint flow from the crates page.
+            Coin top-ups are currently unavailable. NFT purchases use card checkout before WardrobeForge relays the Polygon mint.
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 18 }}>
             <button className="pxl-btn" onClick={() => goto('nfts')}>GO TO CRATES</button>

@@ -29,6 +29,8 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     mode: 'checkout',
     rewards: [],
     message: '',
+    checkoutSession: null,
+    paymentReceipt: '',
   });
   const crateSectionRef = React.useRef(null);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
@@ -140,6 +142,8 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       mode: 'checkout',
       rewards: [],
       message: '',
+      checkoutSession: null,
+      paymentReceipt: '',
     });
   };
 
@@ -157,6 +161,8 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
       mode: 'checkout',
       rewards: [],
       message: '',
+      checkoutSession: null,
+      paymentReceipt: '',
     });
   };
 
@@ -192,94 +198,236 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
     return syncedRewards;
   };
 
-  const handleOnchainCheckout = () => {
+  const handleCardCheckout = () => {
+    const checkoutCrate = modalCrate;
+    const checkoutQuantity = crateModalState.quantity;
+    const checkoutTotalUsd = Number((Number(checkoutCrate?.priceUsd || 0) * checkoutQuantity).toFixed(2));
+
     setCheckoutBusy(true);
     setCrateModalState((current) => ({
       ...current,
-      mode: 'opening',
+      mode: 'payment',
       rewards: [],
-      message: `Preparing ${current.quantity} ${current.quantity === 1 ? 'crate' : 'crates'} for sponsored Polygon mint...`,
+      message: 'Creating checkout and wallet destination...',
     }));
 
     Promise.resolve()
       .then(async () => {
         let nextWalletAddress = walletAddress;
-
         if (!nextWalletAddress) {
           nextWalletAddress = await window.WardrobeForgeWallet?.ensureEmbeddedWallet?.({ user: currentUser });
           if (!nextWalletAddress) {
-            throw new Error('Could not generate a wallet address for this mint.');
+            throw new Error('Could not create a wallet address for this checkout.');
           }
           window.WardrobeForgeAuth?.saveWalletAddress?.(currentUser.id, nextWalletAddress);
+          setMintedWalletAddress(nextWalletAddress);
         }
 
-        setCrateModalState((current) => ({
-          ...current,
-          message: `Submitting a sponsored Polygon mint to ${formatWalletAddress(nextWalletAddress)}...`,
-        }));
-
-        const checkoutResponse = await fetch('/api/contract/execute-crate-purchase', {
+        const checkoutResponse = await fetch('/api/checkout/create-crate-checkout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            crateKey: modalCrate.id,
-            quantity: crateModalState.quantity,
+            crateKey: checkoutCrate.id,
+            quantity: checkoutQuantity,
             recipientWallet: nextWalletAddress,
             accountId: currentUser?.id || '',
           }),
         });
         const checkoutPayload = await checkoutResponse.json().catch(() => null);
         if (!checkoutResponse.ok) {
-          throw new Error(checkoutPayload?.message || 'Could not complete the sponsored mint right now.');
+          throw new Error(checkoutPayload?.message || 'Could not create checkout.');
         }
 
-        const txHash = checkoutPayload.txHash;
-        const resolvedRewards = (checkoutPayload.mintedRewards || []).map((entry) => {
-          const reward = window.WardrobeForgeTokenCatalog?.getItemByTokenId?.(entry.tokenId);
-          if (!reward?.art) {
-            throw new Error(`Minted token ${entry.tokenId} is not mapped in the NFT catalog.`);
-          }
-
-          return {
-            ...reward,
-            tokenId: entry.tokenId,
-            rollNumber: entry.rollNumber,
-            inventorySrc: reward.inventorySrc || reward.avatarSrc || '',
-          };
-        });
-
-        const syncedRewards = await syncMintedRewardsToAccount(resolvedRewards);
-
-        setMintedWalletAddress(nextWalletAddress);
         setCrateModalState((current) => ({
           ...current,
-          mode: 'revealed',
-          rewards: syncedRewards,
-          message: `${current.quantity} ${current.quantity === 1 ? 'crate has' : 'crates have'} been minted on Polygon to ${formatWalletAddress(nextWalletAddress)}.`,
-        }));
-
-        goto('checkout', null, null, {
+          mode: 'payment',
           checkoutSession: {
-            crateId: modalCrate.id,
-            crateName: modalCrate.name,
-            quantity: crateModalState.quantity,
-            totalUsd: modalCrateTotal,
-            totalLabel: formatUsd(modalCrateTotal),
-            paymentMethod: 'Sponsored Polygon Mint',
-            rewards: syncedRewards,
-            walletAddress: nextWalletAddress,
-            txHash,
+            ...checkoutPayload,
+            crateName: checkoutCrate.name,
+            totalUsd: checkoutPayload.totalUsd || checkoutTotalUsd,
+            totalLabel: checkoutPayload.totalLabel || formatUsd(checkoutTotalUsd),
           },
-        });
+          message: `Pay ${checkoutPayload.totalLabel || formatUsd(checkoutTotalUsd)} by card before the Polygon mint starts.`,
+        }));
       })
       .catch((error) => {
         setCrateModalState((current) => ({
           ...current,
           mode: 'checkout',
           rewards: [],
-          message: error.message || 'Could not mint this crate on-chain right now.',
+          message: error.message || 'Could not create checkout.',
+        }));
+      })
+      .finally(() => {
+        setCheckoutBusy(false);
+      });
+  };
+
+  const executeRelayedMint = async ({ checkoutCrate, checkoutQuantity, paymentPayload }) => {
+    const mintResponse = await fetch('/api/contract/execute-crate-purchase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            crateKey: checkoutCrate.id,
+            quantity: checkoutQuantity,
+            recipientWallet: paymentPayload.recipientWallet,
+            accountId: currentUser?.id || '',
+            paymentReceipt: paymentPayload.paymentReceipt,
+          }),
+        });
+    const mintPayload = await mintResponse.json().catch(() => null);
+    if (!mintResponse.ok) {
+      throw new Error(mintPayload?.message || 'Could not mint this crate on Polygon right now.');
+    }
+
+    const resolvedRewards = (mintPayload.mintedRewards || []).map((entry) => {
+      const reward = window.WardrobeForgeTokenCatalog?.getItemByTokenId?.(entry.tokenId);
+      if (!reward?.art) {
+        throw new Error(`Minted token ${entry.tokenId} is not mapped in the NFT catalog.`);
+      }
+
+      return {
+        ...reward,
+        tokenId: entry.tokenId,
+        rollNumber: entry.rollNumber,
+        inventorySrc: reward.inventorySrc || reward.avatarSrc || '',
+      };
+    });
+
+    const syncedRewards = await syncMintedRewardsToAccount(resolvedRewards);
+
+    setMintedWalletAddress(paymentPayload.recipientWallet);
+    setCrateModalState((current) => ({
+      ...current,
+      mode: 'revealed',
+      rewards: syncedRewards,
+      message: `${checkoutQuantity} ${checkoutQuantity === 1 ? 'crate has' : 'crates have'} been minted on Polygon to ${formatWalletAddress(paymentPayload.recipientWallet)}.`,
+    }));
+
+    goto('checkout', null, null, {
+      checkoutSession: {
+        crateId: checkoutCrate.id,
+        crateName: checkoutCrate.name,
+        quantity: checkoutQuantity,
+        totalUsd: paymentPayload.totalUsd,
+        totalLabel: paymentPayload.totalLabel,
+        paymentMethod: paymentPayload.paymentMethod || 'Card / Fiat',
+        rewards: syncedRewards,
+        walletAddress: paymentPayload.recipientWallet,
+        txHash: mintPayload.txHash,
+      },
+    });
+  };
+
+  const handleConfirmCardPayment = () => {
+    const checkoutCrate = modalCrate;
+    const checkoutQuantity = crateModalState.quantity;
+    const checkoutSession = crateModalState.checkoutSession;
+
+    if (!checkoutSession?.checkoutId) {
+      setCrateModalState((current) => ({
+        ...current,
+        message: 'Create checkout before confirming payment.',
+      }));
+      return;
+    }
+
+    setCheckoutBusy(true);
+    setCrateModalState((current) => ({
+      ...current,
+      message: 'Confirming card payment...',
+    }));
+
+    Promise.resolve()
+      .then(async () => {
+        const paymentResponse = await fetch('/api/checkout/confirm-crate-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            checkoutId: checkoutSession.checkoutId,
+            crateKey: checkoutCrate.id,
+            quantity: checkoutQuantity,
+            recipientWallet: checkoutSession.recipientWallet,
+            accountId: currentUser?.id || '',
+          }),
+        });
+        const paymentPayload = await paymentResponse.json().catch(() => null);
+        if (!paymentResponse.ok) {
+          throw new Error(paymentPayload?.message || 'Card payment could not be confirmed.');
+        }
+
+        setCrateModalState((current) => ({
+          ...current,
+          mode: 'opening',
+          checkoutSession: {
+            ...current.checkoutSession,
+            ...paymentPayload,
+            crateName: checkoutCrate.name,
+          },
+          paymentReceipt: paymentPayload.paymentReceipt,
+          rewards: [],
+          message: 'Payment complete. Minting your crate on Polygon...',
+        }));
+
+        await executeRelayedMint({ checkoutCrate, checkoutQuantity, paymentPayload });
+      })
+      .catch((error) => {
+        setCrateModalState((current) => ({
+          ...current,
+          mode: current.paymentReceipt ? 'paid' : 'payment',
+          rewards: [],
+          message: error.message || 'Could not mint this crate on Polygon right now.',
+        }));
+      })
+      .finally(() => {
+        setCheckoutBusy(false);
+      });
+  };
+
+  const handleRetryRelayedMint = () => {
+    const checkoutCrate = modalCrate;
+    const checkoutQuantity = crateModalState.quantity;
+    const checkoutSession = crateModalState.checkoutSession;
+    const paymentReceipt = crateModalState.paymentReceipt;
+
+    if (!checkoutSession?.recipientWallet || !paymentReceipt) {
+      setCrateModalState((current) => ({
+        ...current,
+        mode: 'payment',
+        message: 'Complete card checkout before minting.',
+      }));
+      return;
+    }
+
+    setCheckoutBusy(true);
+    setCrateModalState((current) => ({
+      ...current,
+      mode: 'opening',
+      rewards: [],
+      message: 'Retrying the paid Polygon mint...',
+    }));
+
+    Promise.resolve()
+      .then(() => executeRelayedMint({
+        checkoutCrate,
+        checkoutQuantity,
+        paymentPayload: {
+          ...checkoutSession,
+          paymentReceipt,
+        },
+      }))
+      .catch((error) => {
+        setCrateModalState((current) => ({
+          ...current,
+          mode: 'paid',
+          rewards: [],
+          message: error.message || 'Could not mint this crate on Polygon right now.',
         }));
       })
       .finally(() => {
@@ -298,7 +446,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
         <section ref={crateSectionRef} style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
             <div className="pixel" style={{ fontSize: 14 }}>MYSTERY CRATES</div>
-            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// mint on Polygon for {formatUsd(selectedCrateUnitPrice)} per crate</span>
+            <span className="mono" style={{ fontSize: 18, opacity: .65 }}>// checkout for {formatUsd(selectedCrateUnitPrice)} per crate</span>
           </div>
 
           <div className="grid cols-4 crate-grid">
@@ -549,10 +697,10 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                   <div className={`crate-open-stage float ${crateModalState.mode === 'opening' ? 'shake' : ''}`}>
                     <img className={`crate-open-image crate-image crate-${modalCrate.tone}`} src="assets/crates/pixel-crate.webp" alt={modalCrate.name} decoding="async" />
                   </div>
-                  <div className="pixel crate-open-title">{crateModalState.mode === 'opening' ? 'OPENING CRATE' : 'CHECKOUT PREVIEW'}</div>
+                  <div className="pixel crate-open-title">{crateModalState.mode === 'opening' ? 'OPENING CRATE' : crateModalState.mode === 'paid' ? 'PAYMENT COMPLETE' : crateModalState.mode === 'payment' ? 'CARD CHECKOUT' : 'CHECKOUT PREVIEW'}</div>
                   {crateModalState.message ? <div className="mono crate-open-subtitle">{crateModalState.message}</div> : null}
                   <div className="crate-reveal-card">
-                    <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'opening' ? 'MINTING NOW' : 'ON-CHAIN ORDER'}</div>
+                    <div className="chip coral" style={{ marginBottom: 14 }}>{crateModalState.mode === 'opening' ? 'MINTING NOW' : crateModalState.mode === 'paid' ? 'RELAYER READY' : crateModalState.mode === 'payment' ? 'PAY FIRST' : 'ORDER SETUP'}</div>
                     <div className="pixel" style={{ fontSize: 16, marginBottom: 8 }}>{modalCrate.name}</div>
                     <div className="mono" style={{ fontSize: 20, marginBottom: 10 }}>{crateModalState.quantity} {crateModalState.quantity === 1 ? 'crate' : 'crates'}</div>
                     <div className="pxl-box no-drop mint-detail-box" style={{ background: 'var(--paper-2)', padding: 16, marginBottom: 18, textAlign: 'left' }}>
@@ -560,6 +708,12 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                         <div className="stat-row"><span className="stat-key">CRATE QUANTITY</span><span className="stat-val">{crateModalState.quantity}</span></div>
                         <div className="stat-row"><span className="stat-key">TOTAL</span><span className="stat-val">{formatUsd(modalCrateTotal)}</span></div>
                         <div className="stat-row"><span className="stat-key">NETWORK</span><span className="stat-val">POLYGON</span></div>
+                        {crateModalState.checkoutSession?.recipientWallet ? (
+                          <div className="stat-row"><span className="stat-key">WALLET</span><span className="stat-val">{crateModalState.checkoutSession.recipientWallet}</span></div>
+                        ) : null}
+                        {crateModalState.checkoutSession?.status ? (
+                          <div className="stat-row"><span className="stat-key">PAYMENT</span><span className="stat-val">{crateModalState.checkoutSession.status.toUpperCase()}</span></div>
+                        ) : null}
                       </div>
                       <input
                         className="topup-slider"
@@ -579,9 +733,19 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-                      <button className="pxl-btn" onClick={handleOnchainCheckout} disabled={checkoutBusy}>
-                        {checkoutBusy ? 'CONNECTING...' : `MINT ON POLYGON FOR ${formatUsd(modalCrateTotal)}`}
-                      </button>
+                      {crateModalState.mode === 'payment' ? (
+                        <button className="pxl-btn" onClick={handleConfirmCardPayment} disabled={checkoutBusy}>
+                          {checkoutBusy ? 'CONFIRMING...' : `PAY CARD ${formatUsd(modalCrateTotal)}`}
+                        </button>
+                      ) : crateModalState.mode === 'paid' ? (
+                        <button className="pxl-btn" onClick={handleRetryRelayedMint} disabled={checkoutBusy}>
+                          {checkoutBusy ? 'MINTING...' : 'RETRY MINT'}
+                        </button>
+                      ) : (
+                        <button className="pxl-btn" onClick={handleCardCheckout} disabled={checkoutBusy}>
+                          {checkoutBusy ? 'CONNECTING...' : `CHECKOUT FOR ${formatUsd(modalCrateTotal)}`}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>
