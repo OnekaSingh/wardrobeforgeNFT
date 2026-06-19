@@ -8,6 +8,23 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   const checkoutStorageKey = 'wardrobeforge-active-crate-checkout-v1';
   const pendingCrateOpenStorageKey = 'wardrobeforge-pending-crate-open-v1';
   const isLocalDemoHost = () => ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  const getRandomIndex = (length) => {
+    if (!length) return 0;
+    const cryptoApi = window.crypto || window.msCrypto;
+    if (cryptoApi?.getRandomValues) {
+      const values = new Uint32Array(1);
+      cryptoApi.getRandomValues(values);
+      return values[0] % length;
+    }
+    return Math.floor(Math.random() * length);
+  };
+  const getOpeningRewards = (rewards, quantity = 1) => {
+    const rewardList = Array.isArray(rewards) ? rewards.filter(Boolean) : [];
+    const revealCount = Math.max(1, Number(quantity) || 1);
+    if (rewardList.length <= revealCount) return rewardList;
+
+    return Array.from({ length: revealCount }, () => rewardList[getRandomIndex(rewardList.length)]);
+  };
   const accountSnapshot = React.useMemo(
     () => window.WardrobeForgeAuth?.getAccountSnapshot?.(currentUser?.id) || { xp: 0, ownedArtIds: ['base-outfit', 'base-shoes'], itemStars: { 'base-outfit': 1, 'base-shoes': 1 } },
     [currentUser],
@@ -92,7 +109,7 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
 
       window.sessionStorage.removeItem(pendingCrateOpenStorageKey);
       const crateId = pendingOpen.crateId || pendingOpen.crateKey || crates[0]?.id;
-      const rewards = pendingOpen.rewards;
+      const rewards = getOpeningRewards(pendingOpen.rewards, pendingOpen.quantity);
       setSelectedCrateId(crateId);
       setMintedWalletAddress(pendingOpen.walletAddress || pendingOpen.recipientWallet || '');
       setCrateModalState({
@@ -534,9 +551,10 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
   };
 
   const handleOpenPurchasedCrate = () => {
-    const rewards = crateModalState.allRewards?.length
+    const rawRewards = crateModalState.allRewards?.length
       ? crateModalState.allRewards
       : (crateModalState.rewards || crateModalState.checkoutSession?.rewards || []);
+    const rewards = getOpeningRewards(rawRewards, crateModalState.quantity);
     if (!rewards.length) {
       setCrateModalState((current) => ({
         ...current,
@@ -856,7 +874,16 @@ const NFTsPage = ({ initialId, goto, currentUser, openAuthModal }) => {
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-                      <button className="pxl-btn" onClick={() => goto('avatar')}>VIEW MY AVATAR</button>
+                      <button
+                        className="pxl-btn"
+                        onClick={() => goto('avatar', null, {
+                          slot: revealedReward.slot,
+                          art: revealedReward.art,
+                          requestId: `${revealedReward.id || revealedReward.art}-${Date.now()}`,
+                        })}
+                      >
+                        VIEW MY AVATAR
+                      </button>
                       {hasMorePurchasedCrates ? (
                         <button className="pxl-btn ghost" onClick={handleOpenNextPurchasedCrate}>OPEN ANOTHER</button>
                       ) : null}

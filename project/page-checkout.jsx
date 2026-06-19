@@ -4,6 +4,36 @@ const DEFAULT_CRATE_CONTRACT_ADDRESS = '0xB81B221d3379F21C17A6f70625d1F22a45399D
 
 const CheckoutPage = ({ currentUser, checkoutSession, goto, openAuthModal }) => {
   const formatUsd = (amount) => `$${Number(amount || 0).toFixed(2)}`;
+  const getRandomIndex = (length) => {
+    if (!length) return 0;
+    const cryptoApi = window.crypto || window.msCrypto;
+    if (cryptoApi?.getRandomValues) {
+      const values = new Uint32Array(1);
+      cryptoApi.getRandomValues(values);
+      return values[0] % length;
+    }
+    return Math.floor(Math.random() * length);
+  };
+  const getDemoMintedRewards = (checkoutBase) => {
+    const crateKey = String(checkoutBase?.crateKey || checkoutBase?.crateId || '');
+    const crate = (window.CRATE_LIBRARY || []).find((entry) => String(entry.id) === crateKey)
+      || (window.CRATE_LIBRARY || [])[0];
+    const contents = Array.isArray(crate?.contents) ? crate.contents : [];
+    const quantity = Math.max(1, Number(checkoutBase?.quantity) || 1);
+
+    if (!contents.length) {
+      return [{ tokenId: '100016', rollNumber: 1 }];
+    }
+
+    return Array.from({ length: quantity }, (_, index) => {
+      const reward = contents[getRandomIndex(contents.length)];
+      const tokenId = window.WardrobeForgeTokenCatalog?.getTokenIdForArt?.(reward);
+      return {
+        tokenId: String(tokenId || reward.tokenId || '100016'),
+        rollNumber: index + 1,
+      };
+    });
+  };
   const readStoredCheckout = () => {
     try {
       const parsed = JSON.parse(window.sessionStorage.getItem(CHECKOUT_STORAGE_KEY) || 'null');
@@ -188,7 +218,7 @@ const CheckoutPage = ({ currentUser, checkoutSession, goto, openAuthModal }) => 
           blockNumber: '12345678',
           totalPriceWei: '0',
           paymentId: `0x${'a'.repeat(64)}`,
-          mintedRewards: [{ tokenId: '100016', rollNumber: '7' }],
+          mintedRewards: getDemoMintedRewards(checkoutBase),
         };
       }
       throw new Error(mintPayload?.message || 'Could not mint this crate on Polygon right now.');
